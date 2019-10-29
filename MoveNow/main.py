@@ -7,11 +7,12 @@ from annotation import annotation
 from argparse import ArgumentParser
 import requests
 import numpy as np
-from utils import bounding_box_coordinates, normalization, zoomin_point, resize_point, centralized_keypoint
+from utils import bounding_box_coordinates, normalization, zoomin_point, resize_point, centralized_keypoint, find_palm_xy, overlay_transparent
 import os
 import random
 import json
 from pygame import mixer
+import math
 
 ap =  ArgumentParser()
 ap.add_argument('-name', dest = 'pose_id', type = str, default = '0', help = "Your Name to display")
@@ -94,32 +95,41 @@ def MoveNow(args = args, posenet = posenet):
                 #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
                 similarity, mae = Evaluate(pose_data['poses'][0], prev_posedata)
                 text, cv2_img = criteria(mae, cv2_img)
+                if text == 'Poor':
+                    sound_effect("./sound_effect/Poor.wav")
+                elif text == 'Good':
+                    sound_effect("./sound_effect/Good.wav")
+                elif text == 'Perfect':
+                    sound_effect("./sound_effect/Perfect.wav")
                 # scores['similarity'].append(similarity)
                 scores['mae'].append(mae)
                 textlist.append(text)
             except:
                 # scores['similarity'].append(0)
-                text, cv2_img = criteria(-1, cv2_img) #show missing
+                mae = -1 
+                text, cv2_img = criteria(mae, cv2_img) #show missing
                 scores['mae'].append(np.nan)
                 textlist.append(text)
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
             timer = 0 #reset timer
         else:
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
-            if timer < int(fps * args['sec'] * 0.3): #the time of showing the result (sec.)
+            if timer < int(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
                 text, cv2_img = criteria(mae, cv2_img)
-        
         # print(scores['mae'])
-        if len(scores['mae']) == args['n_poses']: #control number of poses played
+        if len(scores['mae']) == args['n_poses'] and timer >= int(time_to_change_pose * args['sec'] * 0.3): #control number of poses played
             if args['ip_webcam']:
                 result_img = cv2.imdecode(capture, -1)
             else:
                 status, result_img = capture.read()
             break
         timer += 1
-        # cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
+
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     print(textlist)
@@ -134,7 +144,6 @@ def MoveNow(args = args, posenet = posenet):
     mixer.music.fadeout(8000)
     result_display(result_img, results)
     
-
 def start_game():
     mixer.init()
     mixer.music.load('./intro_music/LAKEY INSPIRED - Chill Day.mp3')
@@ -146,7 +155,17 @@ def start_game():
         assert url.startswith("http://"), "IP address should start with http://"
     else:
         capture = cv2.VideoCapture(0)
-
+    
+    tlx_new = 0
+    brx_new = 0
+    timer = 0
+    fps = 0
+    counter = 0
+    touch = False
+    normal_timer = 0
+    normal_clicked = False
+    battle_timer = 0
+    battle_clicked = False
     while True:
         start_time = time.time()
         if args['ip_webcam']:
@@ -158,39 +177,182 @@ def start_game():
         for poser in pose_data['poses']:
             cv2_img = annotation (cv2_img, poser,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
             normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
-
+        if timer == 0:
+            fps = 1 / (time.time() - start_time)
         
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1)
 
-        cv2_img = start_game_button(cv2_img)
+        # cv2_img = start_game_button(cv2_img)
+        if pose_data['poses']:
+        #     # x-axis reversed due to the frame being flipped
+        #     if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * 0.495) and \
+        #         int(pose_data['poses'][0]['l_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.125)) or \
+        #         (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * 0.495) and \
+        #         int(pose_data['poses'][0]['r_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.125)):
+        #         mixer.music.fadeout(5000)
+        #         break
+            # l_palm_x, l_palm_y = find_palm_xy(pose_data['poses'][0]['l_elbow']['x'], pose_data['poses'][0]['l_elbow']['y'], \
+            #     pose_data['poses'][0]['l_wrist']['x'], pose_data['poses'][0]['l_wrist']['y'], 3, 7)
+            # print(l_palm_x, l_palm_y)
+            print('x', int(pose_data['poses'][0]['l_wrist']['x']))
+            print('y', int(pose_data['poses'][0]['l_wrist']['y'] * 0.8))
+            print('x', int(cv2_img.shape[1] * 0.51))
+            print('x2', int(cv2_img.shape[1] * 0.49))
+            print('y', int(cv2_img.shape[0] * 0.1))
+
+            #touch option bar
+            if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
+                    int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.13333333333333333)) or \
+                (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.13333333333333333)):
+                    touch = True
+            
+            #touch normal button
+            if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
+                    int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1125)) or \
+                (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1125)) and \
+                        counter >= 10: #counter >= no. of frame, then the user can touch the button
+                    normal_clicked = True
+                    if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
+                        mixer.music.fadeout(5000)
+                        game_mode = "normal"
+                        return game_mode
+                    normal_timer += 1
+            elif not battle_clicked:
+                normal_clicked = False
+                normal_timer = 0 #ensure the user hold for 2 sec
+
+            #touch battle button
+            if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
+                    int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
+                (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
+                        counter >= 18: #counter >= no. of frame, then the user can touch the button
+                    battle_clicked = True
+                    
+                    if battle_timer % math.ceil(fps * 2) == 0 and battle_timer != 0: #hold 2 sec to get into normal mode
+                        mixer.music.fadeout(5000)
+                        game_mode = "battle"
+                        return game_mode
+                    battle_timer += 1
+                    
+            elif not normal_clicked:
+                battle_clicked = False
+                battle_timer = 0 #ensure the user hold for 2 sec
+            
+        if counter == 0:
+            # brx_new = int(cv2_img.shape[1] * 0.51)
+            # tlx_new = int(cv2_img.shape[1] * 0.49)
+            brx_new = int(cv2_img.shape[1] * 0.54)
+            tlx_new = int(cv2_img.shape[1] * 0.52)
+        if not touch:
+            cv2_img = initial_bar(cv2_img)
+            # cv2.rectangle(cv2_img, (int(cv2_img.shape[1] * 0.71), int(cv2_img.shape[0] * 0.42)), (int(cv2_img.shape[1] * 0.73) + 200, int(cv2_img.shape[0] * 0.54)), (255, 229, 204), -1)
+        else:
+            try:
+                if timer % math.ceil(fps * 0.5) == 0 and counter < 21:
+                    cv2_img = expanded_bar(cv2_img, tlx_new, brx_new)
+                    tlx_new = brx_new
+                    brx_new += round(cv2_img.shape[1] * 0.01)
+                    counter += 1
+                    timer = 0
+                    
+                else:
+                    cv2_img = expanded_bar(cv2_img, tlx_new, brx_new)
+                if counter >= 10:
+                    cv2_img = normal_button(cv2_img, click = normal_clicked) #show normal button
+                    normal_clicked = False
+                if counter >= 18:
+                    cv2_img = battle_button(cv2_img, click = battle_clicked) #show battle button
+                    battle_clicked = False
+                        
+            except:
+                pass
+        
+        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("MoveNow", cv2_img)
         cv2.moveWindow("MoveNow", 0, 0)
 
-        if pose_data['poses']:
-            print('x', int(pose_data['poses'][0]['r_wrist']['x']))
-            print('y', int(pose_data['poses'][0]['r_wrist']['y'] * 0.8))
-            print('x', int(cv2_img.shape[1] * 0.495))
-            print('x2', int(cv2_img.shape[1] * 0.635))
-            print('y', int(cv2_img.shape[0] * 0.125))
-
-            # x-axis reversed due to the frame being flipped
-            if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * 0.495) and \
-                int(pose_data['poses'][0]['l_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.125)) or \
-                (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * 0.495) and \
-                int(pose_data['poses'][0]['r_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.125)):
-                mixer.music.fadeout(5000)
-                break
-
+        if counter < 21:
+            timer += 1
+        
+        
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        
+
 def start_game_button(cv2_img):
     alpha = 0.7
     overlay = cv2_img.copy()
     cv2.rectangle(overlay, (int(overlay.shape[1] * 0.495), int(overlay.shape[0] * 0.05)), (int(overlay.shape[1] * 0.635), int(overlay.shape[0] * 0.125)), (224, 224, 224), -1)       
     cv2.putText(overlay, "Move Now", (int(overlay.shape[1] / 2), int(overlay.shape[0] * 0.1)), cv2.FONT_HERSHEY_COMPLEX, 1, (102, 102, 255), 3, cv2.LINE_AA)
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    return cv2_img
+
+def initial_bar(cv2_img):
+    # tlx = int(cv2_img.shape[1] * 0.49)
+    # tly = int(cv2_img.shape[0] * 0.05)
+    # brx = int(cv2_img.shape[1] * 0.51)
+    # bry = int(cv2_img.shape[0] * 0.12)
+    # cv2.rectangle(cv2_img, (tlx, tly), (brx, bry), (255, 178, 102), -1)
+    logo = cv2.imread('./UI_images/button_movenow.png', cv2.IMREAD_UNCHANGED)
+    tlx = int(cv2_img.shape[1] * 0.46953125)
+    tly = int(cv2_img.shape[0] * 0.0375)
+    brx = int(cv2_img.shape[1] * 0.5296875)
+    bry = int(cv2_img.shape[0] * 0.13333333333333333)
+    cv2_img = overlay_transparent(cv2_img, logo, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img
+
+def expanded_bar(cv2_img, tlx_new, brx_new):
+    alpha = 0.6
+    overlay = cv2_img.copy()
+    cv2.rectangle(overlay, (int(overlay.shape[1] * 0.52), int(overlay.shape[0] * 0.05)), \
+        (brx_new, int(overlay.shape[0] * 0.12)), (224, 224, 224), -1)
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    tlx_new = brx_new #for end_bar, update top left x 
+    brx_new += round(cv2_img.shape[1] * 0.01) #for end_bar, update bottom right x
+    cv2_img = end_bar(cv2_img, tlx_new, brx_new)
+    cv2_img = initial_bar(cv2_img)
+    return cv2_img
+
+def end_bar(cv2_img, tlx_new, brx_new):
+    cv2.rectangle(cv2_img, (tlx_new, int(cv2_img.shape[0] * 0.05)), \
+        (brx_new, int(cv2_img.shape[0] * 0.12)), (204, 229, 255), -1)
+    return cv2_img
+
+def normal_button(cv2_img, click):
+    if click:
+        normal = cv2.imread('./UI_images/button_normal_click.png')
+    else:
+        normal = cv2.imread('./UI_images/button_normal.png')
+  
+    normal_brx = int(cv2_img.shape[1] * 0.61796875)
+    normal_tlx = int(cv2_img.shape[1] * 0.53828125)
+    normal_bry = int(cv2_img.shape[0] * 0.1125)
+    normal_tly = int(cv2_img.shape[0] * 0.058333333333333334)
+    normal = cv2.resize(normal.copy(), (normal_brx - normal_tlx, normal_bry - normal_tly))
+    cv2_img[normal_tly:normal_bry, normal_tlx:normal_brx] = normal
+    return cv2_img
+
+def battle_button(cv2_img, click):
+    if click:
+        battle = cv2.imread('./UI_images/button_battle_click.png')
+    else:
+        battle = cv2.imread('./UI_images/button_battle.png')
+    battle_brx = int(cv2_img.shape[1] * 0.71015625)
+    battle_tlx = int(cv2_img.shape[1] * 0.63203125)
+    battle_bry = int(cv2_img.shape[0] * 0.1111111111111111)
+    battle_tly = int(cv2_img.shape[0] * 0.058333333333333334)
+    battle = cv2.resize(battle.copy(), (battle_brx - battle_tlx, battle_bry - battle_tly))
+    cv2_img[battle_tly:battle_bry, battle_tlx:battle_brx] = battle
     return cv2_img
 
 def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False):
@@ -223,13 +385,11 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False):
     new_posedata = centralized_keypoint(target_w, target_h, new_posedata) #centalized
     cv2.rectangle(overlay, (tlx, tly), (brx, bry), (32,32,32), -1) #rectangle layer
     pose_img = overlay[tly: bry, tlx:brx] #capture the right corner of the origin frame
-    
     pose_img = annotation(pose_img, new_posedata, keypoint_min_score = -1, keypoints_ratio = 1, threshold_denoise = 0.03, 
             normalized = False, pose_id = '?', scale_x = 0.3, scale_y = 0.3)
     # pose_img = cv2.resize(pose_img, (brx-tlx, bry - tly))
     
     overlay[tly: bry, tlx:brx] = pose_img #overwrite the origin
-    
     # cv2.putText(overlay, "1", (tlx + round((brx - tlx)/2), tly + round((bry - tly)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,0), 2)
     new_img = cv2.addWeighted(overlay, 0.7, img, 0.2, 0)
     return new_img, posedata
@@ -290,17 +450,25 @@ def result_display(cv2_img, results):
     cv2.putText(overlay, f"Missing: {results['Missing']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.6)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
     result_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     time.sleep(1)
-    # cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Result', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     cv2.imshow("Result", result_img)
     cv2.moveWindow('Result', 0, 0)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def sound_effect(sound_path):
+    mixer.init()
+    effect = mixer.Sound(sound_path)
+    effect.set_volume(0.4)
+    effect.play()
+    time.sleep(0.6)
  
 
 if __name__ == "__main__":
-    start_game()
+    game_mode = start_game()
     # time.sleep(5)
-    MoveNow()
+    if game_mode == "normal":
+        MoveNow()
 
 #find the beat

@@ -74,9 +74,12 @@ def MoveNow(args = args, posenet = posenet):
             capture = np.array(bytearray(img_resp.content), dtype = 'uint8')
         pose_data, image_name, cv2_img = PredictPose(model = posenet, capture = capture, ip_webcam = args['ip_webcam'], scale_factor= args['scale_factor'], 
             output_stride= args['output_stride'], useGPU= args['useGPU'])
-        for poser in pose_data['poses']:
+        
+        poser = poser_selection(pose_data)
+        # for poser in pose_data['poses']:
+        if poser:
             cv2_img = annotation (cv2_img, poser,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
-            normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)    
+        normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)    
         
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
@@ -89,7 +92,7 @@ def MoveNow(args = args, posenet = posenet):
             #fps < 3 should be * 3
         if timer == 0: #initial a pose
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
-        if timer % int(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
+        if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
             try:
                 #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
                 #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
@@ -114,10 +117,10 @@ def MoveNow(args = args, posenet = posenet):
             timer = 0 #reset timer
         else:
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
-            if timer < int(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
+            if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
                 text, cv2_img = criteria(mae, cv2_img)
         # print(scores['mae'])
-        if len(scores['mae']) == args['n_poses'] and timer >= int(time_to_change_pose * args['sec'] * 0.3): #control number of poses played
+        if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
             if args['ip_webcam']:
                 result_img = cv2.imdecode(capture, -1)
             else:
@@ -128,7 +131,6 @@ def MoveNow(args = args, posenet = posenet):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
-
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -174,7 +176,8 @@ def start_game():
 
         pose_data, image_name, cv2_img = PredictPose(model = posenet, capture = capture, ip_webcam = args['ip_webcam'], scale_factor= args['scale_factor'], 
             output_stride= args['output_stride'], useGPU= args['useGPU'])
-        for poser in pose_data['poses']:
+        poser = poser_selection(pose_data)
+        if poser:
             cv2_img = annotation (cv2_img, poser,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
             normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
         if timer == 0:
@@ -204,19 +207,19 @@ def start_game():
             #touch option bar
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.13333333333333333)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.13333333333333333)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.13333333333333333)):
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.13333333333333333)):
                     touch = True
             
             #touch normal button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1125)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1125)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1125)) and \
                         counter >= 10: #counter >= no. of frame, then the user can touch the button
                     normal_clicked = True
                     if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
@@ -231,10 +234,10 @@ def start_game():
             #touch battle button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.3) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
                         counter >= 18: #counter >= no. of frame, then the user can touch the button
                     battle_clicked = True
                     
@@ -253,6 +256,8 @@ def start_game():
             # tlx_new = int(cv2_img.shape[1] * 0.49)
             brx_new = int(cv2_img.shape[1] * 0.54)
             tlx_new = int(cv2_img.shape[1] * 0.52)
+        
+        cv2_img = instruction(cv2_img)
         if not touch:
             cv2_img = initial_bar(cv2_img)
             # cv2.rectangle(cv2_img, (int(cv2_img.shape[1] * 0.71), int(cv2_img.shape[0] * 0.42)), (int(cv2_img.shape[1] * 0.73) + 200, int(cv2_img.shape[0] * 0.54)), (255, 229, 204), -1)
@@ -355,20 +360,34 @@ def battle_button(cv2_img, click):
     cv2_img[battle_tly:battle_bry, battle_tlx:battle_brx] = battle
     return cv2_img
 
-def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False):
+def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose_left = False, gen_pose_right = False, battle_mode = False):
     height, width = img.shape[0:2]
-    tlx = int(width * 0.7)
-    tly = int(height * 0.5)
-    brx = width
-    bry = height
     overlay = img.copy()
+    if not battle_mode:
+        tlx = int(width * 0.7)
+        tly = int(height * 0.5)
+        brx = width
+        bry = height
+        
+        if gen_pose == False and prev_posedata: #not to generate pose
+            posedata = prev_posedata
+        else:
+            posedata = pose_generator(target_poses) 
+            while posedata == prev_posedata: #make sure the next pose is not the same as previous one
+                posedata = pose_generator(target_poses)
     
-    if gen_pose == False and prev_posedata: #not to generate pose
-        posedata = prev_posedata
     else:
-        posedata = pose_generator(target_poses) 
-        while posedata == prev_posedata: #make sure the next pose is not the same as previous one
-            posedata = pose_generator(target_poses)
+        posedata = target_poses
+        if gen_pose_left:
+            tlx = int(width * 0.30)
+            tly = int(height * 0.6)
+            brx = int(width * 0.496875)
+            bry = int(height * 0.9972222222222222)
+        if gen_pose_right:
+            tlx = int(width * 0.80)
+            tly = int(height * 0.6)
+            brx = width
+            bry = height
 
     
     pt1, pt2, new_posedata = zoomin_point(posedata, scale_x = 0.2, scale_y = 0.2) #crop the pose
@@ -427,16 +446,24 @@ def criteria (mae, cv2_img):
     #Poor match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
     if mae == -1:
         text = "Missing"
-        cv2.putText(cv2_img, "Missing", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (96, 96, 96), 4, cv2.LINE_AA)
+        # cv2.putText(cv2_img, "Missing", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (96, 96, 96), 4, cv2.LINE_AA)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/missing.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.009:
         text = "Perfect" #1000 score (2 combos, 500, 1000, 1500...)
-        cv2.putText(cv2_img, "Perfect", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 102, 255), 4, cv2.LINE_AA)
+        # cv2.putText(cv2_img, "Perfect", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 102, 255), 4, cv2.LINE_AA)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/perfect.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.020:
         text = "Good" #500 score (2 combos, 250, 500, 750...)
-        cv2.putText(cv2_img, "Good", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 178, 255), 4, cv2.LINE_AA)
+        # cv2.putText(cv2_img, "Good", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 178, 255), 4, cv2.LINE_AA)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/good.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     else:
         text = "Poor" #0 score
-        cv2.putText(cv2_img, "Poor", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (0, 128, 255), 4, cv2.LINE_AA)
+        # cv2.putText(cv2_img, "Poor", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (0, 128, 255), 4, cv2.LINE_AA)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/poor.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return text, cv2_img
 
 def result_display(cv2_img, results):
@@ -464,11 +491,218 @@ def sound_effect(sound_path):
     effect.play()
     time.sleep(0.6)
  
+def find_box(cv2_img, img_path, tlx_pct, tly_pct, brx_pct, bry_pct):
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    tlx = int(cv2_img.shape[1] * tlx_pct)
+    tly = int(cv2_img.shape[0] * tly_pct)
+    brx = int(cv2_img.shape[1] * brx_pct)
+    bry = int(cv2_img.shape[0] * bry_pct)
+    return img, tlx, tly, brx, bry
+
+def instruction(cv2_img):
+    alpha = 0.8
+    overlay = cv2_img.copy()
+    # img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00625, 0.018055555555555554, 0.33359375, 0.25277777777777777)
+    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00859375, 0.018055555555555554, 0.3, 0.22777777777777777)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1 )
+    return cv2_img
+
+def poser_selection(pose_data):
+    posedata_with_max_area = None
+    max_area = 0
+    for i, posedata in enumerate(pose_data['poses']):
+        keypoints = posedata.keys()
+        keypoint_list_x = [round(posedata[keypoint]['x']) for keypoint in keypoints]
+        keypoint_list_y = [round(posedata[keypoint]['y']) for keypoint in keypoints]
+        max_x_boundary, min_x_boundary, max_y_boundary, min_y_boundary = bounding_box_coordinates(keypoint_list_x, keypoint_list_y)
+        area = (max_x_boundary - min_x_boundary) * (max_y_boundary - min_y_boundary)
+        if i == 0:
+            max_area = area
+            posedata_with_max_area = posedata
+        elif area > max_area:
+            max_area = area
+            posedata_with_max_area = posedata
+    return posedata_with_max_area
+
+def left_right(pose_data, cv2_img, flip):
+    l_pose_data = []
+    r_pose_data = []
+    center_boundary = int(cv2_img.shape[1] * 0.5)
+    for pose in pose_data['poses']:
+        if flip:
+            if pose['neck']['x'] > center_boundary:
+                l_pose_data.append(pose)
+            else:
+                r_pose_data.append(pose)
+        else:
+            if pose['neck']['x'] < center_boundary:
+                l_pose_data.append(pose)
+            else:
+                r_pose_data.append(pose)
+    return {'poses': l_pose_data}, {'poses': r_pose_data}
+def countdown(cv2_img, num):
+    img, tlx, tly, brx, bry = find_box(cv2_img, f'./UI_images/countdown_{str(num)}.png', 0.48515625, 0, 0.51328125, 0.09722222222222222)
+    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img
+def countdown_pose(cv2_img):
+    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_pose.png', 0.46640625, 0, 0.53359375, 0.09722222222222222)
+    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img
+def countdown_movenow(cv2_img):
+    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_movenow.png', 0.43828125, 0, 0.56171875, 0.09722222222222222)
+    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img
+
+def battle(args = args, posenet = posenet):
+    mixer.init()
+    # playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
+    # background_music = random.choice(playlist)
+    mixer.music.load("./background_music/2.mp3")
+    mixer.music.set_volume(0.5)
+    mixer.music.play(-1)
+    if args['ip_webcam']:
+        assert args['ip_address'] != None, "Please input your IP address shown on IP Webcam application"
+        url = args['ip_address'].rstrip('/') + '/shot.jpg'
+        assert url.startswith("http://"), "IP address should start with http://"
+    else:
+        capture = cv2.VideoCapture(0)
+    
+    target_poses = [pose.path for pose in os.scandir('./players/target_posedata/json') if pose.path.endswith('.json')]
+    # print(random.choice(target_poses))
+    
+    prev_posedata = None 
+    timer = 0
+    scores = {'similarity':[], 'mae': []}
+    result_img = None
+    mae = 0
+    textlist = []
+    time_to_change_pose = 0
+    count_down = 3
+    while True:
+        starttime = time.time()
+        if args['ip_webcam']:
+            img_resp = requests.get(url)
+            capture = np.array(bytearray(img_resp.content), dtype = 'uint8')
+        pose_data, image_name, cv2_img = PredictPose(model = posenet, capture = capture, ip_webcam = args['ip_webcam'], scale_factor= args['scale_factor'], 
+            output_stride= args['output_stride'], useGPU= args['useGPU'])
+        
+        l_pose_data, r_pose_data = left_right(pose_data, cv2_img, args['flip'])
+
+        cv2.line(cv2_img, (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0] * 0.1)), (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0])), (153,204,255), 5)
+        l_posedata_with_max_area = poser_selection(l_pose_data)
+        r_posedata_with_max_area = poser_selection(r_pose_data)
+
+        if l_posedata_with_max_area: 
+            cv2_img = annotation (cv2_img, l_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
+            normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
+        if r_posedata_with_max_area: 
+            cv2_img = annotation (cv2_img, r_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
+            normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
+        
+        if args['flip']:
+            cv2_img = cv2.flip(cv2_img, 1) #flip the frame
+        
+
+        fps = (1 / (time.time() - starttime))
+        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
+        print('FPS: %.1f'%(fps))
+
+        if r_posedata_with_max_area: 
+            cv2_img, prev_posedata = gamebox(cv2_img, r_posedata_with_max_area, prev_posedata = None,  gen_pose = False, gen_pose_left = True, gen_pose_right = False, battle_mode = True)
+        
+        if l_posedata_with_max_area: 
+            cv2_img, prev_posedata = gamebox(cv2_img, l_posedata_with_max_area, prev_posedata = None,  gen_pose = False, gen_pose_left = False, gen_pose_right = True, battle_mode = True)
+
+        
+        if timer <= 10 and not time_to_change_pose:
+            print('Loading...\n')
+            timer += 1
+            continue
+        if not time_to_change_pose: #initial time of changing a pose
+            time_to_change_pose = fps
+            timer = 0
+            #fps < 3 should be * 3
+        
+        
+
+        if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= 0 and timer != 0:
+            if count_down == 0:
+                cv2_img = countdown_pose(cv2_img)
+            else:
+                cv2_img = countdown(cv2_img, count_down)
+            count_down -= 1
+
+        if count_down == 3:
+            cv2_img = countdown_movenow(cv2_img) #movenow
+        elif count_down + 1 != 0:
+            cv2_img = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
+        else:
+            cv2_img = countdown_pose(cv2_img) #pose
+
+
+        
+        timer += 1
+    #     if timer == 0: #initial a pose
+    #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
+    #     if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
+    #         try:
+    #             #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
+    #             #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
+    #             similarity, mae = Evaluate(pose_data['poses'][0], prev_posedata)
+    #             text, cv2_img = criteria(mae, cv2_img)
+    #             if text == 'Poor':
+    #                 sound_effect("./sound_effect/Poor.wav")
+    #             elif text == 'Good':
+    #                 sound_effect("./sound_effect/Good.wav")
+    #             elif text == 'Perfect':
+    #                 sound_effect("./sound_effect/Perfect.wav")
+    #             # scores['similarity'].append(similarity)
+    #             scores['mae'].append(mae)
+    #             textlist.append(text)
+    #         except:
+    #             # scores['similarity'].append(0)
+    #             mae = -1 
+    #             text, cv2_img = criteria(mae, cv2_img) #show missing
+    #             scores['mae'].append(np.nan)
+    #             textlist.append(text)
+    #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
+    #         timer = 0 #reset timer
+    #     else:
+    #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
+    #         if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
+    #             text, cv2_img = criteria(mae, cv2_img)
+    #     # print(scores['mae'])
+    #     if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
+    #         if args['ip_webcam']:
+    #             result_img = cv2.imdecode(capture, -1)
+    #         else:
+    #             status, result_img = capture.read()
+    #         break
+    #     timer += 1
+        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.imshow('MoveNow', cv2_img)
+        cv2.moveWindow('MoveNow', 0, 0)
+
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    # print(textlist)
+    # results = {'Perfect': 0, 'Good': 0, 'Poor': 0, 'Missing': 0}
+    # for result in textlist:
+    #     results[result] += 1
+    # print(results)
+    # avg_sim = round(np.mean(np.array(scores['similarity'])) * 100, 2)
+    # if args['flip']:
+    #     result_img = cv2.flip(result_img, 1)
+    
+    # mixer.music.fadeout(8000)
+    # result_display(result_img, results)
 
 if __name__ == "__main__":
-    game_mode = start_game()
-    # time.sleep(5)
-    if game_mode == "normal":
-        MoveNow()
-
+    # game_mode = start_game()
+    # if game_mode == "normal":
+    #     MoveNow()
+    battle()
 #find the beat

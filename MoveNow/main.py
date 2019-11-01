@@ -207,19 +207,19 @@ def start_game():
             #touch option bar
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.13333333333333333)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.13333333333333333)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.46953125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.13333333333333333)):
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.13333333333333333)):
                     touch = True
             
             #touch normal button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1125)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1125)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1125)) and \
                         counter >= 10: #counter >= no. of frame, then the user can touch the button
                     normal_clicked = True
                     if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
@@ -234,10 +234,10 @@ def start_game():
             #touch battle button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.2) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
                         counter >= 18: #counter >= no. of frame, then the user can touch the button
                     battle_clicked = True
                     
@@ -360,7 +360,7 @@ def battle_button(cv2_img, click):
     cv2_img[battle_tly:battle_bry, battle_tlx:battle_brx] = battle
     return cv2_img
 
-def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose_left = False, gen_pose_right = False, battle_mode = False):
+def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = False, flip = False):
     height, width = img.shape[0:2]
     overlay = img.copy()
     if not battle_mode:
@@ -383,7 +383,7 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose
             tly = int(height * 0.6)
             brx = int(width * 0.496875)
             bry = int(height * 0.9972222222222222)
-        if gen_pose_right:
+        else:
             tlx = int(width * 0.80)
             tly = int(height * 0.6)
             brx = width
@@ -406,6 +406,8 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose
     pose_img = overlay[tly: bry, tlx:brx] #capture the right corner of the origin frame
     pose_img = annotation(pose_img, new_posedata, keypoint_min_score = -1, keypoints_ratio = 1, threshold_denoise = 0.03, 
             normalized = False, pose_id = '?', scale_x = 0.3, scale_y = 0.3)
+    if battle_mode and flip:
+        pose_img = cv2.flip(pose_img, 1)
     # pose_img = cv2.resize(pose_img, (brx-tlx, bry - tly))
     
     overlay[tly: bry, tlx:brx] = pose_img #overwrite the origin
@@ -544,15 +546,80 @@ def left_right(pose_data, cv2_img, flip):
 def countdown(cv2_img, num):
     img, tlx, tly, brx, bry = find_box(cv2_img, f'./UI_images/countdown_{str(num)}.png', 0.48515625, 0, 0.51328125, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
-    return cv2_img
+    return cv2_img, str(num)
 def countdown_pose(cv2_img):
     img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_pose.png', 0.46640625, 0, 0.53359375, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
-    return cv2_img
+    return cv2_img, "pose"
 def countdown_movenow(cv2_img):
     img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_movenow.png', 0.43828125, 0, 0.56171875, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
-    return cv2_img
+    return cv2_img, "movenow"
+def countdown_whole(cv2_img, time_to_change_pose, count_down, timer, \
+    l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode):
+    if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= -1 and timer != 0:
+        if count_down == 0:
+            cv2_img, status = countdown_movenow(cv2_img)
+            # cv2_img, status = countdown_pose(cv2_img)
+        else:
+            cv2_img, status = countdown(cv2_img, count_down)
+        count_down -= 1
+   
+    if count_down == 3: #initial
+        cv2_img, status = countdown_movenow(cv2_img) #movenow
+    elif count_down + 1 != 0:
+        cv2_img, status = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
+        if follow_mode:
+            print('here')
+            cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+        else:
+            if l_display_pose and l_player_act:
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            
+            if r_display_pose and not l_player_act:
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+
+            # if l_player_follow and count_down == 0:
+            #     print('Evaluate')
+            #     l_player_act = True
+            #     l_display_pose = None
+    elif count_down == 0:
+        if follow_mode:
+            pass
+        else:
+            if l_display_pose and l_player_act:
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            
+            if r_display_pose and not l_player_act:
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+            cv2_img, status = countdown_movenow(cv2_img)
+        # cv2_img, status = countdown_pose(cv2_img) #pose
+    else:
+        if follow_mode:
+            if l_player_act:
+                l_display_pose = None
+                l_player_act = False
+                follow_mode = False
+            else:
+                r_display_pose = None
+                l_player_act = True
+                follow_mode = False
+        if l_display_pose or r_display_pose:
+            follow_mode = True
+        if not follow_mode:
+            if l_player_act:
+                    l_display_pose = l_posedata_with_max_area
+                    l_player_follow = False
+                    # follow_mode = True
+            if not l_player_act:
+                    r_display_pose = r_posedata_with_max_area
+                    l_player_follow = True
+                    # follow_mode = True
+
+        cv2_img, status = countdown_movenow(cv2_img)
+        count_down = 3
+    
+    return cv2_img, count_down, timer, status, l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode
 
 def battle(args = args, posenet = posenet):
     mixer.init()
@@ -578,7 +645,12 @@ def battle(args = args, posenet = posenet):
     mae = 0
     textlist = []
     time_to_change_pose = 0
-    count_down = 3
+    count_down = 3 #for countdown
+    l_player_act = True
+    l_player_follow = False
+    follow_mode = False
+    l_display_pose = None
+    r_display_pose = None
     while True:
         starttime = time.time()
         if args['ip_webcam']:
@@ -590,6 +662,7 @@ def battle(args = args, posenet = posenet):
         l_pose_data, r_pose_data = left_right(pose_data, cv2_img, args['flip'])
 
         cv2.line(cv2_img, (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0] * 0.1)), (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0])), (153,204,255), 5)
+        
         l_posedata_with_max_area = poser_selection(l_pose_data)
         r_posedata_with_max_area = poser_selection(r_pose_data)
 
@@ -608,40 +681,108 @@ def battle(args = args, posenet = posenet):
         cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
         print('FPS: %.1f'%(fps))
 
-        if r_posedata_with_max_area: 
-            cv2_img, prev_posedata = gamebox(cv2_img, r_posedata_with_max_area, prev_posedata = None,  gen_pose = False, gen_pose_left = True, gen_pose_right = False, battle_mode = True)
-        
-        if l_posedata_with_max_area: 
-            cv2_img, prev_posedata = gamebox(cv2_img, l_posedata_with_max_area, prev_posedata = None,  gen_pose = False, gen_pose_left = False, gen_pose_right = True, battle_mode = True)
-
-        
         if timer <= 10 and not time_to_change_pose:
             print('Loading...\n')
             timer += 1
             continue
+        
         if not time_to_change_pose: #initial time of changing a pose
             time_to_change_pose = fps
             timer = 0
             #fps < 3 should be * 3
-        
-        
 
-        if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= 0 and timer != 0:
+    #     cv2_img, count_down, timer, status, l_display_pose, r_display_pose, l_player_act, \
+    #         l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode = countdown_whole(cv2_img, time_to_change_pose, count_down, timer, \
+    # l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode)
+        if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= -1 and timer != 0:
             if count_down == 0:
-                cv2_img = countdown_pose(cv2_img)
+                cv2_img, status = countdown_movenow(cv2_img)
+                # cv2_img, status = countdown_pose(cv2_img)
             else:
-                cv2_img = countdown(cv2_img, count_down)
+                cv2_img, status = countdown(cv2_img, count_down)
             count_down -= 1
-
-        if count_down == 3:
-            cv2_img = countdown_movenow(cv2_img) #movenow
+    
+        if count_down == 3: #initial
+            cv2_img, status = countdown_movenow(cv2_img) #movenow
         elif count_down + 1 != 0:
-            cv2_img = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
+            cv2_img, status = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
+            if follow_mode:
+                print('here')
+                cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+            else:
+                if l_display_pose and l_player_act:
+                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                
+                if r_display_pose and not l_player_act:
+                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+        elif count_down == 0:
+            if follow_mode:
+                pass
+            else:
+                if l_display_pose and l_player_act:
+                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                
+                if r_display_pose and not l_player_act:
+                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                cv2_img, status = countdown_movenow(cv2_img)
+            # cv2_img, status = countdown_pose(cv2_img) #pose
         else:
-            cv2_img = countdown_pose(cv2_img) #pose
+            if follow_mode:
+                if l_player_act:
+                    l_display_pose = None
+                    l_player_act = False
+                    follow_mode = False
+                else:
+                    r_display_pose = None
+                    l_player_act = True
+                    follow_mode = False
+            if l_display_pose or r_display_pose:
+                follow_mode = True
+            if not follow_mode:
+                if l_player_act:
+                        l_display_pose = l_posedata_with_max_area
+                        l_player_follow = False
+                        # follow_mode = True
+                if not l_player_act:
+                        r_display_pose = r_posedata_with_max_area
+                        l_player_follow = True
+                        # follow_mode = True
 
-
+            cv2_img, status = countdown_movenow(cv2_img)
+            count_down = 3
         
+        # if status == 'change':
+        #     if l_player_act:
+        #         l_display_pose = l_posedata_with_max_area
+        #         l_player_follow = False
+        #     if not l_player_act:
+        #         r_display_pose = r_posedata_with_max_area
+        #         l_player_follow = True
+        #     count_down = 3
+       
+        #display pose
+
+        # if l_display_pose and l_player_act and count_down >= 0:
+        #     cv2_img, prev_posedata = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+        #     if count_down == 0:
+        #         l_player_act = False
+        #         l_display_pose = None
+            # if not l_player_follow and status == 'change':
+            #     cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+            #     l_player_act = False
+            #     l_display_pose = None
+        # elif timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0:
+        #     cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+        # if r_display_pose and not l_player_act and count_down >= 0:
+           
+        #     cv2_img, prev_posedata = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+        #     if count_down == 0:
+        #         l_player_act = True
+        #         r_display_pose = None
+            # if l_player_follow and count_down == 0:
+            #     print('Evaluate')
+            #     l_player_act = True
+            #     l_display_pose = None
         timer += 1
     #     if timer == 0: #initial a pose
     #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
@@ -681,11 +822,9 @@ def battle(args = args, posenet = posenet):
     #         break
     #     timer += 1
         cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
-
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     # print(textlist)
@@ -701,8 +840,8 @@ def battle(args = args, posenet = posenet):
     # result_display(result_img, results)
 
 if __name__ == "__main__":
-    # game_mode = start_game()
-    # if game_mode == "normal":
-    #     MoveNow()
-    battle()
+    game_mode = start_game()
+    if game_mode == "normal":
+        MoveNow()
+    # battle()
 #find the beat

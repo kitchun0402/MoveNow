@@ -45,7 +45,7 @@ def MoveNow(args = args, posenet = posenet):
     # playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
     # background_music = random.choice(playlist)
     mixer.music.load("./background_music/2.mp3")
-    mixer.music.set_volume(0.5)
+    mixer.music.set_volume(1)
     mixer.music.play(-1)
 
     # capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1024)
@@ -61,12 +61,14 @@ def MoveNow(args = args, posenet = posenet):
     # print(random.choice(target_poses))
     
     prev_posedata = None 
-    timer = 0
+    # timer = 0
+    initial_pose = True
     scores = {'similarity':[], 'mae': []}
     result_img = None
     mae = 0
     textlist = []
     time_to_change_pose = 0
+    result_time = 0
     while True:
         starttime = time.time()
         if args['ip_webcam']:
@@ -74,7 +76,6 @@ def MoveNow(args = args, posenet = posenet):
             capture = np.array(bytearray(img_resp.content), dtype = 'uint8')
         pose_data, image_name, cv2_img = PredictPose(model = posenet, capture = capture, ip_webcam = args['ip_webcam'], scale_factor= args['scale_factor'], 
             output_stride= args['output_stride'], useGPU= args['useGPU'])
-        
         poser = poser_selection(pose_data)
         # for poser in pose_data['poses']:
         if poser:
@@ -84,15 +85,19 @@ def MoveNow(args = args, posenet = posenet):
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
 
-        fps = (1 / (time.time() - starttime))
-        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
-        print('FPS: %.1f'%(fps))
-        if not time_to_change_pose: #initial time of changing a pose
-            time_to_change_pose = fps
+        
+        # if not time_to_change_pose: #initial time of changing a pose
+        #     time_to_change_pose = fps
             #fps < 3 should be * 3
-        if timer == 0: #initial a pose
+        # if timer == 0: 
+        if not prev_posedata: #initiate a pose
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
-        if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
+        if time_to_change_pose == 0: #initial time to changing a pose
+            time_to_change_pose = time.time()
+        time_passed = time.time() - time_to_change_pose #time interval
+        if time_passed >= 2: #time to change a pose
+        # if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
+            initial_pose = False #already initiate a pose
             try:
                 #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
                 #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
@@ -114,23 +119,35 @@ def MoveNow(args = args, posenet = posenet):
                 scores['mae'].append(np.nan)
                 textlist.append(text)
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
-            timer = 0 #reset timer
+            # timer = 0 #reset timer
+            time_to_change_pose = 0
         else:
             cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
-            if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
+            if time_passed <= 1 and not initial_pose: #in second, time to show the evaluation
+            # if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
                 text, cv2_img = criteria(mae, cv2_img)
-        # print(scores['mae'])
-        if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
+        
+        if len(scores['mae']) == args['n_poses'] and result_time == 0: #intiate a start time to give a buffer to show the evaluation
+            result_time = time.time() 
+        # if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
+        if len(scores['mae']) == args['n_poses'] and time.time() - result_time >= 1: #hold 1 sec
             if args['ip_webcam']:
                 result_img = cv2.imdecode(capture, -1)
             else:
                 status, result_img = capture.read()
             break
-        timer += 1
+        # timer += 1
+
+        fps = (1 / (time.time() - starttime))
+        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
+        print('FPS: %.1f'%(fps))
+
         cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
+
+        
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -141,7 +158,7 @@ def MoveNow(args = args, posenet = posenet):
     print(results)
     avg_sim = round(np.mean(np.array(scores['similarity'])) * 100, 2)
     if args['flip']:
-        result_img = cv2.flip(result_img, 1)
+        result_img = cv2.flip(result_img, 1) #flip the result page
     
     mixer.music.fadeout(8000)
     result_display(result_img, results)
@@ -160,8 +177,8 @@ def start_game():
     
     tlx_new = 0
     brx_new = 0
-    timer = 0
-    fps = 0
+    # timer = 0
+    # fps = 0
     counter = 0
     touch = False
     normal_timer = 0
@@ -180,9 +197,9 @@ def start_game():
         if poser:
             cv2_img = annotation (cv2_img, poser,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
             normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
-        if timer == 0:
-            fps = 1 / (time.time() - start_time)
         
+        # if timer == 0:
+        #     fps = 1 / (time.time() - start_time)
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1)
 
@@ -222,14 +239,17 @@ def start_game():
                     int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1125)) and \
                         counter >= 10: #counter >= no. of frame, then the user can touch the button
                     normal_clicked = True
-                    if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
+                    if normal_timer == 0:
+                        normal_timer = time.time()
+                    if time.time() - normal_timer >= 1:
+                    # if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
                         mixer.music.fadeout(5000)
                         game_mode = "normal"
                         return game_mode
-                    normal_timer += 1
+                    # normal_timer += 1
             elif not battle_clicked:
                 normal_clicked = False
-                normal_timer = 0 #ensure the user hold for 2 sec
+                normal_timer = 0 #ensure the user hold for 1 sec
 
             #touch battle button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
@@ -240,16 +260,18 @@ def start_game():
                     int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
                         counter >= 18: #counter >= no. of frame, then the user can touch the button
                     battle_clicked = True
-                    
-                    if battle_timer % math.ceil(fps * 2) == 0 and battle_timer != 0: #hold 2 sec to get into normal mode
+                    if battle_timer == 0:
+                        battle_timer = time.time()
+                    if time.time() - battle_timer >= 1:
+                    # if battle_timer % math.ceil(fps * 2) == 0 and battle_timer != 0: #hold 2 sec to get into normal mode
                         mixer.music.fadeout(5000)
                         game_mode = "battle"
                         return game_mode
-                    battle_timer += 1
+                    # battle_timer += 1
                     
             elif not normal_clicked:
                 battle_clicked = False
-                battle_timer = 0 #ensure the user hold for 2 sec
+                battle_timer = 0 #ensure the user hold for 1 sec
             
         if counter == 0:
             # brx_new = int(cv2_img.shape[1] * 0.51)
@@ -257,19 +279,20 @@ def start_game():
             brx_new = int(cv2_img.shape[1] * 0.54)
             tlx_new = int(cv2_img.shape[1] * 0.52)
         
-        cv2_img = instruction(cv2_img)
+        cv2_img = instruction(cv2_img) #show instruction
         if not touch:
             cv2_img = initial_bar(cv2_img)
+            
             # cv2.rectangle(cv2_img, (int(cv2_img.shape[1] * 0.71), int(cv2_img.shape[0] * 0.42)), (int(cv2_img.shape[1] * 0.73) + 200, int(cv2_img.shape[0] * 0.54)), (255, 229, 204), -1)
         else:
             try:
-                if timer % math.ceil(fps * 0.5) == 0 and counter < 21:
+                if counter < 21: #length of the bar
+                # if timer % math.ceil(fps * 0.5) == 0 and counter < 21:
                     cv2_img = expanded_bar(cv2_img, tlx_new, brx_new)
                     tlx_new = brx_new
                     brx_new += round(cv2_img.shape[1] * 0.01)
                     counter += 1
-                    timer = 0
-                    
+                    # timer = 0
                 else:
                     cv2_img = expanded_bar(cv2_img, tlx_new, brx_new)
                 if counter >= 10:
@@ -282,17 +305,18 @@ def start_game():
             except:
                 pass
         
-        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("MoveNow", cv2_img)
         cv2.moveWindow("MoveNow", 0, 0)
 
-        if counter < 21:
-            timer += 1
+        # if counter < 21:
+        #     timer += 1
         
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        print('fps: %.2f'%(1 / (time.time() - start_time)))
 
 def start_game_button(cv2_img):
     alpha = 0.7
@@ -443,28 +467,43 @@ def pose_generator(target_poses):
         posedata = json.load(pose)
     return posedata['poses'][0]
 
-def criteria (mae, cv2_img):
+def criteria (mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = False):
     #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
     #Poor match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
+    tlx_pct = 0.5734375
+    tly_pct = 0.09722222222222222
+    brx_pct = 0.82265625
+    bry_pct = 0.30694444444444446
+    if battle_mode_left_player: #box on the left
+        tlx_pct = 0.340625
+        tly_pct = 0.22361111111111112
+        brx_pct = 0.4859375
+        bry_pct = 0.34444444444444444
+    if battle_mode_right_player: #box on the left
+        tlx_pct = 0.8609375
+        tly_pct = 0.22361111111111112
+        brx_pct = 0.99140625
+        bry_pct = 0.34444444444444444
+    
     if mae == -1:
         text = "Missing"
         # cv2.putText(cv2_img, "Missing", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (96, 96, 96), 4, cv2.LINE_AA)
-        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/missing.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/missing.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.009:
         text = "Perfect" #1000 score (2 combos, 500, 1000, 1500...)
         # cv2.putText(cv2_img, "Perfect", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 102, 255), 4, cv2.LINE_AA)
-        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/perfect.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/perfect.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.020:
         text = "Good" #500 score (2 combos, 250, 500, 750...)
         # cv2.putText(cv2_img, "Good", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 178, 255), 4, cv2.LINE_AA)
-        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/good.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/good.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     else:
         text = "Poor" #0 score
         # cv2.putText(cv2_img, "Poor", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (0, 128, 255), 4, cv2.LINE_AA)
-        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/poor.png', 0.5734375, 0.09722222222222222, 0.82265625, 0.30694444444444446)
+        img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/poor.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return text, cv2_img
 
@@ -489,7 +528,7 @@ def result_display(cv2_img, results):
 def sound_effect(sound_path):
     mixer.init()
     effect = mixer.Sound(sound_path)
-    effect.set_volume(0.4)
+    effect.set_volume(0.8)
     effect.play()
     time.sleep(0.6)
  
@@ -645,9 +684,11 @@ def battle(args = args, posenet = posenet):
     mae = 0
     textlist = []
     time_to_change_pose = 0
+    skip_first_frame = True
+    start_point = False
     count_down = 3 #for countdown
     l_player_act = True
-    l_player_follow = False
+    l_player_follow = True
     follow_mode = False
     l_display_pose = None
     r_display_pose = None
@@ -675,90 +716,211 @@ def battle(args = args, posenet = posenet):
         
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
-        
+    
 
-        fps = (1 / (time.time() - starttime))
-        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
-        print('FPS: %.1f'%(fps))
-
-        if timer <= 10 and not time_to_change_pose:
-            print('Loading...\n')
-            timer += 1
+        # if timer <= 10 and not time_to_change_pose:
+        #     print('Loading...\n')
+        #     timer += 1
+        #     continue
+        if skip_first_frame:
+            skip_first_frame = False
+            cv2.imshow('MoveNow', cv2_img)
+            cv2.moveWindow('MoveNow', 0, 0)
             continue
-        
         if not time_to_change_pose: #initial time of changing a pose
-            time_to_change_pose = fps
-            timer = 0
+            # time_to_change_pose = fps
+            time_to_change_pose = time.time()
+            start_point = True
+            # timer = 0
             #fps < 3 should be * 3
 
     #     cv2_img, count_down, timer, status, l_display_pose, r_display_pose, l_player_act, \
     #         l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode = countdown_whole(cv2_img, time_to_change_pose, count_down, timer, \
     # l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode)
-        if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= -1 and timer != 0:
-            if count_down == 0:
-                cv2_img, status = countdown_movenow(cv2_img)
-                # cv2_img, status = countdown_pose(cv2_img)
-            else:
-                cv2_img, status = countdown(cv2_img, count_down)
-            count_down -= 1
-    
-        if count_down == 3: #initial
-            cv2_img, status = countdown_movenow(cv2_img) #movenow
-        elif count_down + 1 != 0:
-            cv2_img, status = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
-            if follow_mode:
-                print('here')
-                cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
-            else:
-                if l_display_pose and l_player_act:
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
-                
-                if r_display_pose and not l_player_act:
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
-        elif count_down == 0:
-            if follow_mode:
-                pass
-            else:
-                if l_display_pose and l_player_act:
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
-                
-                if r_display_pose and not l_player_act:
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
-                cv2_img, status = countdown_movenow(cv2_img)
-            # cv2_img, status = countdown_pose(cv2_img) #pose
-        else:
-            if follow_mode:
-                if l_player_act:
-                    l_display_pose = None
-                    l_player_act = False
-                    follow_mode = False
-                else:
-                    r_display_pose = None
-                    l_player_act = True
-                    follow_mode = False
-            if l_display_pose or r_display_pose:
-                follow_mode = True
-            if not follow_mode:
-                if l_player_act:
-                        l_display_pose = l_posedata_with_max_area
-                        l_player_follow = False
-                        # follow_mode = True
-                if not l_player_act:
-                        r_display_pose = r_posedata_with_max_area
-                        l_player_follow = True
-                        # follow_mode = True
 
-            cv2_img, status = countdown_movenow(cv2_img)
-            count_down = 3
+        # if time.time() - time_to_change_pose <= 1:            
+
+        time_to_countdown = time.time() - time_to_change_pose
+        print(time_to_countdown)
+        if time_to_countdown > 3.2: #buffer
+            time_to_change_pose = 0
+            
+            if l_display_pose: #left player acted and saved the pose
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                l_player_follow = False
+            
+            if r_display_pose: #the right player's pose shown on the left
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                l_player_follow = True
+
+            print(l_player_act)
+            #saved the left player's pose, l_player_follow -> make sure there is no new pose generated in 'follow' mode
+            if l_player_act and l_player_follow: 
+                l_display_pose = l_posedata_with_max_area
+                
+            ##saved the right player's pose, not l_player_follow -> make sure there is no new pose generated in 'follow' mode
+            if not l_player_act and not l_player_follow: 
+                r_display_pose = r_posedata_with_max_area
+                # l_player_act = True #change to the left player to act
+                
         
-        # if status == 'change':
-        #     if l_player_act:
-        #         l_display_pose = l_posedata_with_max_area
-        #         l_player_follow = False
-        #     if not l_player_act:
-        #         r_display_pose = r_posedata_with_max_area
-        #         l_player_follow = True
+        
+        
+        if  time_to_countdown > 2.4: #1
+            cv2_img, status = countdown(cv2_img, num = 1)
+            if l_display_pose:
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            if r_display_pose: #the right player's pose shown on the left
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+
+        
+        
+        elif time_to_countdown > 1.6: #2
+            cv2_img, status = countdown(cv2_img, num = 2)
+            if l_display_pose:
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            if r_display_pose: #the right player's pose shown on the left
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+        
+        
+        elif time_to_countdown > 0.8: #3
+            cv2_img, status = countdown(cv2_img, num = 3)
+            if l_display_pose:
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            if r_display_pose: #the right player's pose shown on the left
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+
+
+
+        elif time_to_countdown >= 0: #begin
+            cv2_img, status = countdown_movenow(cv2_img) #load movenow
+
+            #the right player follows the left player
+            if not l_player_follow and time_to_countdown <= 0.4 and l_display_pose:
+                try:
+                    _, mae = Evaluate(r_posedata_with_max_area, l_display_pose)
+                    text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True)
+                    if text == 'Poor':
+                        sound_effect("./sound_effect/Poor.wav")
+                    elif text == 'Good':
+                        sound_effect("./sound_effect/Good.wav")
+                    elif text == 'Perfect':
+                        sound_effect("./sound_effect/Perfect.wav")
+                except:
+                    mae = -1 
+                    text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
+                l_display_pose = None
+                l_player_act = False #change to the right player to act
+            
+            if l_player_follow and time_to_countdown <= 0.4 and r_display_pose:
+                try:
+                    _, mae = Evaluate(l_posedata_with_max_area, r_display_pose)
+                    text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False)
+                    if text == 'Poor':
+                        sound_effect("./sound_effect/Poor.wav")
+                    elif text == 'Good':
+                        sound_effect("./sound_effect/Good.wav")
+                    elif text == 'Perfect':
+                        sound_effect("./sound_effect/Perfect.wav")
+                except:
+                    mae = -1 
+                    text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) #show missing
+                r_display_pose = None
+                l_player_act = True #change to the right player to act
+
+            cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+
+            if l_display_pose: #the left player's pose shown on the right
+                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+            if r_display_pose: #the right player's pose shown on the left
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+
+        
+
+        #--------
+        # if time_diff >= 0.5 and count_down >= -1:
+        #     if count_down == 0:
+        #         cv2_img, status = countdown_movenow(cv2_img)
+        #         # cv2_img, status = countdown_pose(cv2_img)
+        #     else:
+        #         cv2_img, status = countdown(cv2_img, count_down)
+                
+        #     count_down -= 1
+        #     time_to_change_pose = 0
+
+        # if count_down == 3: #initial
+        #     cv2_img, status = countdown_movenow(cv2_img) #movenow
+        # elif count_down + 1 != 0:
+        #     cv2_img, status = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
+        #     if follow_mode:
+                
+        #         pass
+        #     else:
+        #         if l_display_pose and l_player_act:
+        #             cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                
+        #         if r_display_pose and not l_player_act:
+        #             cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+
+                
+        # # elif count_down == 0:
+        # #     print('here')
+        # #     if follow_mode:
+        # #         pass
+        # #     else:
+        # #         if l_display_pose and l_player_act:
+        # #             cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                
+        # #         if r_display_pose and not l_player_act:
+        # #             cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+        # #         cv2_img, status = countdown_movenow(cv2_img)
+        #     # cv2_img, status = countdown_pose(cv2_img) #pose
+        # else:
+        #     if follow_mode:
+        #         left = False
+        #         right = False
+        #         # print(count_down)
+                
+        #         try:
+        #             if l_display_pose:
+        #                 _, mae = Evaluate(r_posedata_with_max_area, l_display_pose)
+        #                 right = True
+        #             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = left, battle_mode_right_player = right)
+        #             if text == 'Poor':
+        #                 sound_effect("./sound_effect/Poor.wav")
+        #             elif text == 'Good':
+        #                 sound_effect("./sound_effect/Good.wav")
+        #             elif text == 'Perfect':
+        #                 sound_effect("./sound_effect/Perfect.wav")
+        #         except:
+        #             mae = -1 
+        #             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = left, battle_mode_right_player = right) #show missing
+        #         if l_player_act:
+        #             l_display_pose = None
+        #             l_player_act = False
+        #             follow_mode = False
+        #         else:
+        #             r_display_pose = None
+        #             l_player_act = True
+        #             follow_mode = False
+
+        #     if l_display_pose or r_display_pose: #already store a pose
+        #         follow_mode = True
+
+        #     if not follow_mode:
+                
+        #         if l_player_act:
+        #                 l_display_pose = l_posedata_with_max_area
+        #                 l_player_follow = False
+                        
+        #         if not l_player_act:
+        #                 r_display_pose = r_posedata_with_max_area
+        #                 l_player_follow = True
+                        
+        #     cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+        #     cv2_img, status = countdown_movenow(cv2_img)
         #     count_down = 3
+        #----------------
        
         #display pose
 
@@ -783,36 +945,41 @@ def battle(args = args, posenet = posenet):
             #     print('Evaluate')
             #     l_player_act = True
             #     l_display_pose = None
-        timer += 1
+        # timer += 1
     #     if timer == 0: #initial a pose
     #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
-    #     if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
-    #         try:
-    #             #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
-    #             #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
-    #             similarity, mae = Evaluate(pose_data['poses'][0], prev_posedata)
-    #             text, cv2_img = criteria(mae, cv2_img)
-    #             if text == 'Poor':
-    #                 sound_effect("./sound_effect/Poor.wav")
-    #             elif text == 'Good':
-    #                 sound_effect("./sound_effect/Good.wav")
-    #             elif text == 'Perfect':
-    #                 sound_effect("./sound_effect/Perfect.wav")
-    #             # scores['similarity'].append(similarity)
-    #             scores['mae'].append(mae)
-    #             textlist.append(text)
-    #         except:
-    #             # scores['similarity'].append(0)
-    #             mae = -1 
-    #             text, cv2_img = criteria(mae, cv2_img) #show missing
-    #             scores['mae'].append(np.nan)
-    #             textlist.append(text)
-    #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
-    #         timer = 0 #reset timer
-    #     else:
-    #         cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
-    #         if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
-    #             text, cv2_img = criteria(mae, cv2_img)
+        # time_passed = time.time() - time_to_change_pose #time interval
+        # if time_passed >= 2: #time to change a pose
+        # # if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
+        #     initial_pose = False #already initiate a pose
+        #     try:
+        #         #Perfect match (0.9987696908139251, 0.00658765889408432), (0.9975094474004261, 0.00842546430265792)
+        #         #bad match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
+        #         similarity, mae = Evaluate(pose_data['poses'][0], prev_posedata)
+        #         text, cv2_img = criteria(mae, cv2_img)
+        #         if text == 'Poor':
+        #             sound_effect("./sound_effect/Poor.wav")
+        #         elif text == 'Good':
+        #             sound_effect("./sound_effect/Good.wav")
+        #         elif text == 'Perfect':
+        #             sound_effect("./sound_effect/Perfect.wav")
+        #         # scores['similarity'].append(similarity)
+        #         scores['mae'].append(mae)
+        #         textlist.append(text)
+        #     except:
+        #         # scores['similarity'].append(0)
+        #         mae = -1 
+        #         text, cv2_img = criteria(mae, cv2_img) #show missing
+        #         scores['mae'].append(np.nan)
+        #         textlist.append(text)
+        #     cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
+        #     # timer = 0 #reset timer
+        #     time_to_change_pose = 0
+        # else:
+        #     cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
+        #     if time_passed <= 1 and not initial_pose: #in second, time to show the evaluation
+        #     # if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
+        #         text, cv2_img = criteria(mae, cv2_img)
     #     # print(scores['mae'])
     #     if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
     #         if args['ip_webcam']:
@@ -821,12 +988,16 @@ def battle(args = args, posenet = posenet):
     #             status, result_img = capture.read()
     #         break
     #     timer += 1
-        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        # cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
+        fps = (1 / (time.time() - starttime))
+        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
+        print('FPS: %.1f'%(fps))
     # print(textlist)
     # results = {'Perfect': 0, 'Good': 0, 'Poor': 0, 'Missing': 0}
     # for result in textlist:
@@ -838,10 +1009,10 @@ def battle(args = args, posenet = posenet):
     
     # mixer.music.fadeout(8000)
     # result_display(result_img, results)
-
 if __name__ == "__main__":
-    game_mode = start_game()
-    if game_mode == "normal":
-        MoveNow()
-    # battle()
+    # game_mode = start_game()
+    # if game_mode == "normal":
+    #     MoveNow()
+    # if game_mode == "battle":
+    battle()
 #find the beat

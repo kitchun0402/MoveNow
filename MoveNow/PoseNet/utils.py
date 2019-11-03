@@ -32,7 +32,7 @@ def read_cap(cap, ip_webcam = False, scale_factor=1.0, output_stride=16):
         res, img = cap.read() #720 * 1280
         if not res:
             raise IOError("webcam failure")
-
+    img = cv2.resize(img, (1280, 720)) #resize
     # rescale the image
     # target_width, target_height = valid_resolution(
     #     img.shape[1] * 0.9, img.shape[0] * 0.9, output_stride=16)
@@ -42,6 +42,7 @@ def read_cap(cap, ip_webcam = False, scale_factor=1.0, output_stride=16):
 
 def read_imgfile(path, scale_factor=1.0, output_stride=16):
     img = cv2.imread(path)
+    img = cv2.resize(img, (1280, 720)) #resize
     return _process_input(img, scale_factor, output_stride)
 
 

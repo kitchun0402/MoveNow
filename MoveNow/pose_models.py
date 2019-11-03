@@ -40,7 +40,7 @@ def LoadModel(weight_dir = "./model_", model_id = 101, output_stride = 16, pose_
         # print(state_dict)
         model.load_state_dict(state_dict)
 
-        if useGPU:
+        if useGPU and torch.cuda.is_available():
             strDevice = 'cuda'
             model = model.cuda()
         model.name = 'PoseNet'
@@ -79,7 +79,10 @@ def PredictPose(model, img_path = None, capture = None, ip_webcam = False, scale
             input_image, cv2_img, output_scale = read_cap(capture, ip_webcam = ip_webcam, scale_factor=scale_factor, output_stride=output_stride)
        
         with torch.no_grad():
-            input_image = torch.Tensor(input_image)
+            if useGPU and torch.cuda.is_available():
+                input_image = torch.Tensor(input_image).cuda()
+            else:
+                input_image = torch.Tensor(input_image)
             heatmap, offset, displacement_fwd, displacement_bwd = model(input_image) #return corrds: y, x
             pose_scores, keypoint_scores, keypoint_coords = PoseNet.decode_multiple_poses(
                 heatmap.squeeze(0),

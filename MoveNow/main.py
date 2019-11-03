@@ -546,7 +546,7 @@ def instruction(cv2_img):
     # img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00625, 0.018055555555555554, 0.33359375, 0.25277777777777777)
     img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00859375, 0.018055555555555554, 0.3, 0.22777777777777777)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
-    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1 )
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
 
 def poser_selection(pose_data):
@@ -594,72 +594,56 @@ def countdown_movenow(cv2_img):
     img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_movenow.png', 0.43828125, 0, 0.56171875, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img, "movenow"
-def countdown_whole(cv2_img, time_to_change_pose, count_down, timer, \
-    l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode):
-    if timer % math.ceil(time_to_change_pose * 1) == 0 and count_down >= -1 and timer != 0:
-        if count_down == 0:
-            cv2_img, status = countdown_movenow(cv2_img)
-            # cv2_img, status = countdown_pose(cv2_img)
-        else:
-            cv2_img, status = countdown(cv2_img, count_down)
-        count_down -= 1
-   
-    if count_down == 3: #initial
-        cv2_img, status = countdown_movenow(cv2_img) #movenow
-    elif count_down + 1 != 0:
-        cv2_img, status = countdown(cv2_img, count_down + 1) #countdown 3, 2, 1
-        if follow_mode:
-            print('here')
-            cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
-        else:
-            if l_display_pose and l_player_act:
-                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
-            
-            if r_display_pose and not l_player_act:
-                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
 
-            # if l_player_follow and count_down == 0:
-            #     print('Evaluate')
-            #     l_player_act = True
-            #     l_display_pose = None
-    elif count_down == 0:
-        if follow_mode:
-            pass
-        else:
-            if l_display_pose and l_player_act:
-                cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
-            
-            if r_display_pose and not l_player_act:
-                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
-            cv2_img, status = countdown_movenow(cv2_img)
-        # cv2_img, status = countdown_pose(cv2_img) #pose
+def l_health_bar(cv2_img, l_tlx = None, l_tly = None, l_brx = None, l_bry = None, l_brx_o = None, hit = 0):
+    alpha = 0.8
+    overlay = cv2_img.copy()
+
+    """Background"""
+    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/health_bar_bg.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+
+    """Actual Health"""
+    if not l_tlx: #inital
+        img, l_tlx, l_tly, l_brx, l_bry = find_box(cv2_img, "./UI_images/health_bar.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
+        
     else:
-        if follow_mode:
-            if l_player_act:
-                l_display_pose = None
-                l_player_act = False
-                follow_mode = False
-            else:
-                r_display_pose = None
-                l_player_act = True
-                follow_mode = False
-        if l_display_pose or r_display_pose:
-            follow_mode = True
-        if not follow_mode:
-            if l_player_act:
-                    l_display_pose = l_posedata_with_max_area
-                    l_player_follow = False
-                    # follow_mode = True
-            if not l_player_act:
-                    r_display_pose = r_posedata_with_max_area
-                    l_player_follow = True
-                    # follow_mode = True
+        img = cv2.imread("./UI_images/health_bar.png", cv2.IMREAD_UNCHANGED)
+    if l_brx_o: #initiate an original point
+        l_brx = int(l_brx - (l_brx_o - l_tlx) * hit)
+    overlay = overlay_transparent(overlay, img, l_tlx, l_tly, (l_brx - l_tlx, l_bry - l_tly))
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    return cv2_img, l_tlx, l_tly, l_brx, l_bry
 
-        cv2_img, status = countdown_movenow(cv2_img)
-        count_down = 3
-    
-    return cv2_img, count_down, timer, status, l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode
+def r_health_bar(cv2_img, r_tlx = None, r_tly = None, r_brx = None, r_bry = None, r_brx_o = None, hit = 0):
+    alpha = 0.8
+    overlay = cv2_img.copy()
 
+    """Background"""
+    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/health_bar_bg.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+
+    """Actual Health"""
+    if not r_tlx: #inital
+        img, r_tlx, r_tly, r_brx, r_bry = find_box(cv2_img, "./UI_images/health_bar.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
+    else:
+        img = cv2.imread("./UI_images/health_bar.png", cv2.IMREAD_UNCHANGED)
+    if r_brx_o: #initiate an original point
+        r_brx = int(r_brx - (r_brx_o - r_tlx) * hit)
+    overlay = overlay_transparent(overlay, img, r_tlx, r_tly, (r_brx  - r_tlx, r_bry - r_tly))
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    return cv2_img, r_tlx, r_tly, r_brx, r_bry
+
+def hit_pct (result):
+    if result == "Poor" or result == "Good":
+        hit = 0.05
+        return hit
+    elif result == "Perfect":
+        hit = 0.1
+        return hit
+    elif result == "Missing":
+        hit = 0.4
+        return hit
 def battle(args = args, posenet = posenet):
     mixer.init()
     # playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
@@ -692,6 +676,19 @@ def battle(args = args, posenet = posenet):
     follow_mode = False
     l_display_pose = None
     r_display_pose = None
+    """Left heath bar"""
+    l_tlx = None
+    l_tly = None
+    l_brx = None
+    l_bry = None
+    l_brx_o = None
+    """Right heath bar"""
+    r_tlx = None
+    r_tly = None
+    r_brx = None
+    r_bry = None
+    r_brx_o = None
+
     while True:
         starttime = time.time()
         if args['ip_webcam']:
@@ -706,7 +703,7 @@ def battle(args = args, posenet = posenet):
         
         l_posedata_with_max_area = poser_selection(l_pose_data)
         r_posedata_with_max_area = poser_selection(r_pose_data)
-
+        
         if l_posedata_with_max_area: 
             cv2_img = annotation (cv2_img, l_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
             normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
@@ -717,7 +714,6 @@ def battle(args = args, posenet = posenet):
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
     
-
         # if timer <= 10 and not time_to_change_pose:
         #     print('Loading...\n')
         #     timer += 1
@@ -733,15 +729,10 @@ def battle(args = args, posenet = posenet):
             start_point = True
             # timer = 0
             #fps < 3 should be * 3
-
-    #     cv2_img, count_down, timer, status, l_display_pose, r_display_pose, l_player_act, \
-    #         l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode = countdown_whole(cv2_img, time_to_change_pose, count_down, timer, \
-    # l_display_pose, r_display_pose, l_player_act, l_player_follow, l_posedata_with_max_area, r_posedata_with_max_area, follow_mode)
-
-        # if time.time() - time_to_change_pose <= 1:            
-
+          
         time_to_countdown = time.time() - time_to_change_pose
         print(time_to_countdown)
+        """Buffer"""
         if time_to_countdown > 3.2: #buffer
             time_to_change_pose = 0
             
@@ -753,50 +744,68 @@ def battle(args = args, posenet = posenet):
                 cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                 l_player_follow = True
 
-            print(l_player_act)
             #saved the left player's pose, l_player_follow -> make sure there is no new pose generated in 'follow' mode
             if l_player_act and l_player_follow: 
                 l_display_pose = l_posedata_with_max_area
                 
-            ##saved the right player's pose, not l_player_follow -> make sure there is no new pose generated in 'follow' mode
+            #saved the right player's pose, not l_player_follow -> make sure there is no new pose generated in 'follow' mode
             if not l_player_act and not l_player_follow: 
                 r_display_pose = r_posedata_with_max_area
-                # l_player_act = True #change to the left player to act
+            
                 
-        
-        
-        
+        """Countdown: 1"""
         if  time_to_countdown > 2.4: #1
+            cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o)
+            cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o = r_brx_o)
             cv2_img, status = countdown(cv2_img, num = 1)
+
             if l_display_pose:
                 cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
             if r_display_pose: #the right player's pose shown on the left
                 cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
 
-        
-        
+            """Countdown: 2"""
         elif time_to_countdown > 1.6: #2
+            cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o)
+            cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o)
             cv2_img, status = countdown(cv2_img, num = 2)
+
             if l_display_pose:
                 cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
             if r_display_pose: #the right player's pose shown on the left
-                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
-        
-        
+                cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])        
+            
+            """Countdown: 3"""
         elif time_to_countdown > 0.8: #3
+            cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o)
+            cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o)
             cv2_img, status = countdown(cv2_img, num = 3)
+
             if l_display_pose:
                 cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
             if r_display_pose: #the right player's pose shown on the left
                 cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+            """sustain the effect"""
+            if not l_player_follow and l_player_act:
+                text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True)
+                l_player_act = False #change to the right player to act
+            if l_player_follow and not l_player_act:
+                text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False)
+                l_player_act = True #change to the right player to act
 
-
-
+            """Countdown: MoveNow"""
         elif time_to_countdown >= 0: #begin
+            cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o)
+            cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o)
             cv2_img, status = countdown_movenow(cv2_img) #load movenow
-
-            #the right player follows the left player
-            if not l_player_follow and time_to_countdown <= 0.4 and l_display_pose:
+            if not l_brx_o:
+                l_brx_o = l_brx
+            if not r_brx_o:
+                r_brx_o = r_brx
+            print('l_brx_o', l_brx_o)
+            print('r_brx_o', r_brx_o)
+            """The right player follows the left player"""
+            if not l_player_follow and l_display_pose:
                 try:
                     _, mae = Evaluate(r_posedata_with_max_area, l_display_pose)
                     text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True)
@@ -809,10 +818,20 @@ def battle(args = args, posenet = posenet):
                 except:
                     mae = -1 
                     text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
+                text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
+                
+                """hit"""
+                hit = hit_pct (result = text)
+                if text == "Poor" or text == "Missing":
+                    cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o, hit = hit)
+                else:
+                    cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o, hit = hit)
+                
                 l_display_pose = None
-                l_player_act = False #change to the right player to act
+                # l_player_act = False #change to the right player to act
             
-            if l_player_follow and time_to_countdown <= 0.4 and r_display_pose:
+            """The left player follows the right player"""
+            if l_player_follow and r_display_pose:
                 try:
                     _, mae = Evaluate(l_posedata_with_max_area, r_display_pose)
                     text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False)
@@ -825,10 +844,18 @@ def battle(args = args, posenet = posenet):
                 except:
                     mae = -1 
                     text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) #show missing
+                text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) 
+            
+                """hit"""
+                hit = hit_pct (result = text)
+                    
+                if text == "Poor" or text == "Missing":
+                    cv2_img, l_tlx, l_tly, l_brx, l_bry = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o, hit = hit)
+                else:
+                    cv2_img, r_tlx, r_tly, r_brx, r_bry = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o, hit = hit)
+                
                 r_display_pose = None
-                l_player_act = True #change to the right player to act
-
-            cv2.putText(cv2_img, "hello", (100,100), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32,32,32), 3)
+                # l_player_act = True #change to the right player to act
 
             if l_display_pose: #the left player's pose shown on the right
                 cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])

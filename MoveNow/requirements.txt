@@ -6,3 +6,4 @@ matplotlib>=3.0.0
 pyfiglet==0.8.post1
 tqdm>=4.26
 pygame>=1.9.6
+requests>= 2.22.0

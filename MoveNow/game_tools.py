@@ -16,6 +16,7 @@ def find_box(cv2_img, img_path, tlx_pct, tly_pct, brx_pct, bry_pct):
 def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = False, flip = False):
     height, width = img.shape[0:2]
     overlay = img.copy()
+    flag = True
     if not battle_mode:
         tlx = int(width * 0.7)
         tly = int(height * 0.5)
@@ -49,10 +50,18 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose
     target_w = brx - tlx
     pose_h = pt2[1] - pt1[1]
     pose_w = pt2[0] - pt1[0]
-    while pose_h > target_h or pose_w > target_w: #resize the pose within the target frame
-        pose_h *= 0.9
-        pose_w *= 0.9
+
+    if flag and pose_h < target_h:
+        flag = False
+        while pose_h < int(target_h * 0.7) or pose_w < int(target_w * 0.7):
+            pose_h *= 1.1
+            pose_w *= 1.1
+    else:
+        while pose_h > target_h or pose_w > target_w: #resize the pose within the target frame
+            pose_h *= 0.9
+            pose_w *= 0.9
     
+
     new_posedata = resize_point(new_posedata, pose_w, pose_h, pt1=pt1, pt2=pt2, cv2_img=None) #resize
     new_posedata = centralized_keypoint(target_w, target_h, new_posedata) #centalized
     cv2.rectangle(overlay, (tlx, tly), (brx, bry), (32,32,32), -1) #rectangle layer
@@ -111,7 +120,7 @@ def criteria (mae, cv2_img, battle_mode_left_player = False, battle_mode_right_p
 def sound_effect(sound_path):
     mixer.init()
     effect = mixer.Sound(sound_path)
-    effect.set_volume(0.8)
+    effect.set_volume(1)
     effect.play()
     time.sleep(0.6)
 
@@ -135,7 +144,7 @@ def pose_generator(target_poses):
     # "r_ankle": {"x": 512.8174241591255, "y": 594.3890109174625, "conf": 1}, 
     # "neck": {"x": 537, "y": 156, "conf": 0.8841903507709503}}, "compute_time": "2.305", 
     # "metadata": {"width": 1080, "height": 720, "pose_model_name": "PoseNet", "compute_time": "2.305"}}
-    # target = random.shuffle(target_poses)
+    # random.shuffle(target_poses)
     pose_path = random.choice(target_poses)
     with open (pose_path, 'r') as pose:
         posedata = json.load(pose)

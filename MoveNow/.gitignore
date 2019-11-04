@@ -2,6 +2,7 @@
 model_/*
 players/image/
 players/test/
+players/yoga/
 players/*.jpg
 players/target_posedata/image
 players/target_posedata/important

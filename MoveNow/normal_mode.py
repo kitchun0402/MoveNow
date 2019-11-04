@@ -17,9 +17,9 @@ import math
 
 def Normal_Mode(args, posenet):
     mixer.init()
-    # playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
-    # background_music = random.choice(playlist)
-    mixer.music.load("./background_music/2.mp3")
+    playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
+    background_music = random.choice(playlist)
+    mixer.music.load(background_music)
     mixer.music.set_volume(1)
     mixer.music.play(-1)
 

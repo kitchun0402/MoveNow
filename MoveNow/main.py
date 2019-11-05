@@ -17,6 +17,7 @@ import math
 from battle_mode import Battle_Mode
 from normal_mode import Normal_Mode
 from start_game import Start_Game
+from datetime import datetime
 
 ap =  ArgumentParser()
 ap.add_argument('-name', dest = 'pose_id', type = str, default = '0', help = "Your Name to display")
@@ -40,6 +41,7 @@ ap.add_argument('--n-poses', type = int, default = 10, help = 'How many poses yo
 ap.add_argument('-o', '--output-video', action = 'store_true', default = False, help = 'Record a gameplay')
 ap.add_argument('--output-name', type = str, default = 'gameplay.mp4', help = 'The name of the output video')
 ap.add_argument('--output-fps', type = float, default = 20, help = 'The output video\'s fps')
+ap.add_argument('--imwrite', action = 'store_true', default = False, help = 'Save the result pic')
 args = vars(ap.parse_args())
 
 

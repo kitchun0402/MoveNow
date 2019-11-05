@@ -225,4 +225,4 @@ def loading(cv2_img, loading = 1, video = None):
     cv2.moveWindow("MoveNow", 0, 0)
     if video != None:
         video.write(cv2_img)
-    cv2.waitKey(1)
+    cv2.waitKey(2)

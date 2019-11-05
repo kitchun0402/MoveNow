@@ -12,6 +12,7 @@ import random
 import json
 from pygame import mixer
 import math
+from datetime import datetime
 
 def Battle_Mode(args, posenet, output_video = None):
     mixer.init()
@@ -355,6 +356,9 @@ def Battle_Mode(args, posenet, output_video = None):
     """Result"""
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img)
+    if args['imwrite']:
+        savetime = str(datetime.now().time()).replace(":","")[0:6]
+        cv2.imwrite(f"./result_images/{savetime}.png", result_img)
     cv2.moveWindow('Result', 0, 0)
     if output_video != None:
         output_video.write(result_img)

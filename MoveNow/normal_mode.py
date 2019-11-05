@@ -73,7 +73,7 @@ def Normal_Mode(args, posenet, output_video = None):
             if time_to_change_pose == 0: #initial time to changing a pose
                 time_to_change_pose = time.time()
             time_passed = time.time() - time_to_change_pose #time interval
-            if time_passed >= 2: #time to change a pose
+            if time_passed >= 3: #time to change a pose
             # if timer % math.ceil(time_to_change_pose * args['sec']) == 0 and timer != 0: #control time to change another pose
                 initial_pose = False #already initiate a pose
                 try:
@@ -181,6 +181,10 @@ def Normal_Mode(args, posenet, output_video = None):
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img_)
     cv2.moveWindow('Result', 0, 0)
+    if args['imwrite']:
+        savetime = str(datetime.now().time()).replace(":","")[0:6]
+        cv2.imwrite(f"./result_images/{savetime}.png", result_img)
+
     if output_video != None:
         output_video.write(cv2_img)
     cv2.waitKey(0)
@@ -214,7 +218,7 @@ def instruction_normal(cv2_img):
     return cv2_img
 
 def display_result(cv2_img, results, perfect_pct, good_pct, poor_pct, missing_pct, times):
-    alpha = 0.7
+    alpha = 0.8
     overlay = cv2_img.copy()
 
     """labels"""

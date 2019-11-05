@@ -10,9 +10,9 @@ import os
 import random
 from pygame import mixer
 import math
-from game_tools import poser_selection, sound_effect
+from game_tools import poser_selection, sound_effect, screen_record
 
-def Start_Game(args, posenet):
+def Start_Game(args, posenet, output_video = None):
     mixer.init()
     mixer.music.load('./intro_music/LAKEY INSPIRED - Chill Day.mp3')
     mixer.music.set_volume(1)
@@ -23,6 +23,8 @@ def Start_Game(args, posenet):
         assert url.startswith("http://"), "IP address should start with http://"
     else:
         capture = cv2.VideoCapture(0)
+        if args['output_video']:
+            output_video = screen_record(capture, output_file_path = './' + args['output_name'], fps = args['output_fps'])
     
     tlx_new = 0
     brx_new = 0
@@ -56,7 +58,6 @@ def Start_Game(args, posenet):
             # print('x', int(cv2_img.shape[1] * 0.51))
             # print('x2', int(cv2_img.shape[1] * 0.49))
             # print('y', int(cv2_img.shape[0] * 0.1))
-
             #touch option bar
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.43)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
@@ -81,8 +82,8 @@ def Start_Game(args, posenet):
                         sound_effect('./sound_effect/click_button.wav')
                         mixer.music.fadeout(5000)
                         game_mode = "normal"
-                        loading(cv2_img, loading = 3)
-                        return game_mode
+                        loading(cv2_img, loading = 3, video = output_video)
+                        return game_mode, output_video
                     # normal_timer += 1
             elif not battle_clicked:
                 normal_clicked = False
@@ -103,8 +104,8 @@ def Start_Game(args, posenet):
                         sound_effect('./sound_effect/click_button.wav')
                         mixer.music.fadeout(5000)
                         game_mode = "battle"
-                        loading(cv2_img, loading = 3)
-                        return game_mode
+                        loading(cv2_img, loading = 3, video = output_video)
+                        return game_mode, output_video
                     # battle_timer += 1
                     
             elif not normal_clicked:
@@ -147,11 +148,12 @@ def Start_Game(args, posenet):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("MoveNow", cv2_img)
         cv2.moveWindow("MoveNow", 0, 0)
-            
+        if args['output_video']:
+            output_video.write(cv2_img)   
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            output_video.release()
             break
         print('fps: %.2f'%(1 / (time.time() - start_time)))
-
 def initial_bar(cv2_img):
     logo = cv2.imread('./UI_images/button_movenow.png', cv2.IMREAD_UNCHANGED)
     tlx = int(cv2_img.shape[1] * 0.43)
@@ -213,7 +215,7 @@ def instruction(cv2_img):
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
 
-def loading(cv2_img, loading = 1):
+def loading(cv2_img, loading = 1, video = None):
     alpha = 0.8
     overlay = cv2_img.copy()
     img, tlx, tly, brx, bry = find_box(cv2_img, f"./UI_images/loading{loading}.png", 0.19, 0.40, 0.76, 0.60)
@@ -221,4 +223,6 @@ def loading(cv2_img, loading = 1):
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     cv2.imshow("MoveNow", cv2_img)
     cv2.moveWindow("MoveNow", 0, 0)
+    if video != None:
+        video.write(cv2_img)
     cv2.waitKey(1)

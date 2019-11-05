@@ -13,7 +13,7 @@ import json
 from pygame import mixer
 import math
 
-def Battle_Mode(args, posenet):
+def Battle_Mode(args, posenet, output_video = None):
     mixer.init()
     playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
     background_music = random.choice(playlist)
@@ -100,11 +100,13 @@ def Battle_Mode(args, posenet):
             skip_first_frame = False
             cv2.imshow('MoveNow', cv2_img)
             cv2.moveWindow('MoveNow', 0, 0)
+            if output_video != None:
+                output_video.write(cv2_img)
             continue
         """instructions"""
         if not instruction_time:
             instruction_time = time.time()
-        if time.time() - instruction_time <= 8: #load 8 sec
+        if time.time() - instruction_time <= 6: #load 8 sec
             cv2_img = instruction_battle(cv2_img)
         else:
             if not time_to_change_pose: #initial time of changing a pose
@@ -225,10 +227,9 @@ def Battle_Mode(args, posenet):
                         text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
                     
                     """hit"""
-                    print(r_combo)
                     hit = hit_pct (result = text, result_list = r_combo)
                     r_average_hit = hit / division
-                    print(hit)
+                    print('r_average_hit', l_average_hit)
 
                     """reset the pose"""
                     l_display_pose = None
@@ -266,7 +267,7 @@ def Battle_Mode(args, posenet):
                     """hit"""
                     hit = hit_pct (result = text, result_list = l_combo)
                     l_average_hit = hit / division
-                    
+                    # print('l_average_hit', l_average_hit)
 
                     """reset the pose"""
                     r_display_pose = None
@@ -295,7 +296,7 @@ def Battle_Mode(args, posenet):
                     cv2_img, l_tlx, l_tly, l_brx, l_bry, intense_music = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o, \
                         hit = r_average_hit, intense_music = intense_music) 
                 
-                if r_health_counter == division:
+                if r_health_counter == division - 1:
                     r_health_counter = 0
                     r_average_hit = None
                 r_health_counter += 1
@@ -309,7 +310,7 @@ def Battle_Mode(args, posenet):
                     cv2_img, r_tlx, r_tly, r_brx, r_bry, intense_music = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o, \
                         hit = l_average_hit, intense_music = intense_music)
                 
-                if l_health_counter == division:
+                if l_health_counter == division - 1:
                     l_health_counter = 0
                     l_average_hit = None
                 l_health_counter += 1
@@ -341,6 +342,9 @@ def Battle_Mode(args, posenet):
 
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
+        if output_video != None:
+            output_video.write(cv2_img)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -352,6 +356,8 @@ def Battle_Mode(args, posenet):
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img)
     cv2.moveWindow('Result', 0, 0)
+    if output_video != None:
+        output_video.write(result_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

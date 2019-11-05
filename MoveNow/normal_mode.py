@@ -15,7 +15,7 @@ import json
 from pygame import mixer
 import math
 
-def Normal_Mode(args, posenet):
+def Normal_Mode(args, posenet, output_video = None):
     mixer.init()
     playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
     background_music = random.choice(playlist)
@@ -125,6 +125,8 @@ def Normal_Mode(args, posenet):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
+        if output_video != None:
+            output_video.write(cv2_img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -156,11 +158,7 @@ def Normal_Mode(args, posenet):
         if args['flip']:
             frame = cv2.flip(frame, 1) #flip the result page
             frame = cv2.resize(frame, (1280, 720))
-        if time.time() - start >= 0.3 and result_count <= 20: 
-            # perfect_pct *= result_count
-            # good_pct *= result_count
-            # poor_pct *= result_count
-            # missing_pct *= result_count
+        if time.time() - start >= 0.1 and result_count <= 20: 
             try:
                 cv2_img = display_result(frame, results, perfect_pct, good_pct, poor_pct, missing_pct, result_count)
             except:
@@ -170,6 +168,8 @@ def Normal_Mode(args, posenet):
             
         cv2.imshow('Result', cv2_img)
         cv2.moveWindow('Result', 0, 0)
+        if output_video != None:
+            output_video.write(cv2_img)
 
         if result_count > 20:
             result_img_ = cv2_img
@@ -181,27 +181,29 @@ def Normal_Mode(args, posenet):
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img_)
     cv2.moveWindow('Result', 0, 0)
+    if output_video != None:
+        output_video.write(cv2_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     return "homepage"
 
-def result_display(cv2_img, results):
-    alpha = 0.7
-    overlay = cv2_img.copy()
-    cv2.rectangle(overlay, (int(overlay.shape[1] * 0.05), int(overlay.shape[0] * 0.1)), (int(overlay.shape[1] * 0.3), int(overlay.shape[0] * 0.65)), (224, 224, 224), -1)
-    cv2.putText(overlay, "Statistics", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-    cv2.putText(overlay, f"Perfect: {results['Perfect']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.3)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
-    cv2.putText(overlay, f"Good: {results['Good']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.4)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
-    cv2.putText(overlay, f"Poor: {results['Poor']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.5)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
-    cv2.putText(overlay, f"Missing: {results['Missing']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.6)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
-    result_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
-    time.sleep(1)
-    # cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
-    # cv2.setWindowProperty('Result', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow("Result", result_img)
-    cv2.moveWindow('Result', 0, 0)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# def result_display(cv2_img, results):
+#     alpha = 0.7
+#     overlay = cv2_img.copy()
+#     cv2.rectangle(overlay, (int(overlay.shape[1] * 0.05), int(overlay.shape[0] * 0.1)), (int(overlay.shape[1] * 0.3), int(overlay.shape[0] * 0.65)), (224, 224, 224), -1)
+#     cv2.putText(overlay, "Statistics", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+#     cv2.putText(overlay, f"Perfect: {results['Perfect']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.3)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
+#     cv2.putText(overlay, f"Good: {results['Good']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.4)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
+#     cv2.putText(overlay, f"Poor: {results['Poor']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.5)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
+#     cv2.putText(overlay, f"Missing: {results['Missing']}", (int(overlay.shape[1] * 0.1), int(overlay.shape[0] * 0.6)), cv2.FONT_HERSHEY_COMPLEX, 1, (96, 96, 96), 2, cv2.LINE_AA)
+#     result_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+#     time.sleep(1)
+#     # cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+#     # cv2.setWindowProperty('Result', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+#     cv2.imshow("Result", result_img)
+#     cv2.moveWindow('Result', 0, 0)
+#     cv2.waitKey(0)
+#     cv2.destroyAllWindows()
 
 def instruction_normal(cv2_img):
     alpha = 0.8
@@ -229,25 +231,20 @@ def display_result(cv2_img, results, perfect_pct, good_pct, poor_pct, missing_pc
     img, tlx, tly, brx, bry = find_box(overlay, './UI_images/missing.png', 0.0055, 0.4901, 0.0861, 0.554)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     
-    
     """display results"""
     if perfect_pct != 0:
-        # perfect_brx = 0.2945 * perfect_pct
         img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_perfect.png', 0.0977, 0.1639, 0.2945, 0.2333)
         diff_perfect = tlx + int((brx - tlx) * perfect_pct / 20 * times)
         overlay = overlay_transparent(overlay, img, tlx, tly, (diff_perfect - tlx, bry - tly))
     if good_pct != 0:
-        # good_brx = 0.2945 * good_pct
         img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_good.png', 0.0977, 0.2708, 0.2945, 0.3402)
         diff_good = tlx + int((brx - tlx) * good_pct / 20 * times)
         overlay = overlay_transparent(overlay, img, tlx, tly, (diff_good - tlx, bry - tly))
     if poor_pct != 0:
-        # poor_brx = 0.2945 * poor_pct
         img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_poor.png', 0.0977, 0.3777, 0.2945, 0.4471)
         diff_poor = tlx + int((brx - tlx) * poor_pct / 20 * times)
         overlay = overlay_transparent(overlay, img, tlx, tly, (diff_poor - tlx, bry - tly))
     if missing_pct != 0:
-        # missing_brx = 0.2945 * missing_pct
         img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_missing.png', 0.0977, 0.4846, 0.2945, 0.554)
         diff_missing = tlx + int((brx - tlx) * missing_pct / 20 * times)
         overlay = overlay_transparent(overlay, img, tlx, tly, (diff_missing - tlx, bry - tly))

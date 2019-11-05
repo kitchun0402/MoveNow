@@ -182,11 +182,8 @@ def combo(cv2_img, left_player):
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 
-def dynamic_object(cv2_img):
-    tlx_pct = 0.09
-    tly_pct = 0.73
-    brx_pct = 0.18
-    bry_pct = 0.89
-    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/ball.png', tlx_pct, tly_pct, brx_pct, bry_pct)
-    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
-    return cv2_img, tlx, tly, brx, bry
+def screen_record(capture, output_file_path, fps = 20):
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    output_video = cv2.VideoWriter(output_file_path, fourcc, fps, size)
+    return output_video

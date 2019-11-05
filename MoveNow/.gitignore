@@ -8,6 +8,7 @@ players/target_posedata/image
 players/target_posedata/important
 players/target_posedata/old
 players/target_posedata/*.jpg
+/*.mp4
 spare.py
 #                                     __               __  __                   _
 #   ____ ____  ____  ___  _________ _/ /  ____  __  __/ /_/ /_  ____  ____     (_)___ _____  ____  ________  _____

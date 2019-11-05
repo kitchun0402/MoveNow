@@ -43,10 +43,19 @@ args = vars(ap.parse_args())
 posenet = LoadModel(weight_dir = args['weight_dir'], model_id = args['model_id'], output_stride = args['output_stride'], 
     pose_model_name = "PoseNet", useGPU = args['useGPU'], verbose = args['verbose'])
 
-if __name__ == "__main__":
+def homepage():
     game_mode = Start_Game(args = args, posenet = posenet)
     if game_mode == "normal":
-        Normal_Mode(args = args, posenet = posenet)
+        back_to_home = Normal_Mode(args = args, posenet = posenet)
     if game_mode == "battle":
-        Battle_Mode(args = args, posenet = posenet)
+        back_to_home = Battle_Mode(args = args, posenet = posenet)
+    try:
+        if back_to_home == "homepage":
+            homepage() #recursive
+    except:
+        pass
+
+if __name__ == "__main__":
+    homepage()
+
 #find the beat

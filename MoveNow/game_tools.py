@@ -51,9 +51,9 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose
     pose_h = pt2[1] - pt1[1]
     pose_w = pt2[0] - pt1[0]
 
-    if flag and pose_h < target_h:
+    if flag and (pose_h < int(target_h * 0.4) or pose_w < int(target_w * 0.4)):
         flag = False
-        while pose_h < int(target_h * 0.7) or pose_w < int(target_w * 0.7):
+        while pose_h < int(target_h * 0.4) or pose_w < int(target_w * 0.4):
             pose_h *= 1.1
             pose_w *= 1.1
     else:
@@ -82,18 +82,18 @@ def criteria (mae, cv2_img, battle_mode_left_player = False, battle_mode_right_p
     #Poor match (0.9662763866452719, 0.028538520119295172), (0.9703551168423131, 0.029034741415598055)
     tlx_pct = 0.5734375
     tly_pct = 0.09722222222222222
-    brx_pct = 0.82265625
-    bry_pct = 0.30694444444444446
+    brx_pct = 0.85
+    bry_pct = 0.23
     if battle_mode_left_player: #box on the left
         tlx_pct = 0.29
-        tly_pct = 0.10
-        brx_pct = 0.49
-        bry_pct = 0.30
-    if battle_mode_right_player: #box on the left
+        tly_pct = 0.15
+        brx_pct = 0.45 #49
+        bry_pct = 0.25 #30
+    if battle_mode_right_player: #box on the right
         tlx_pct = 0.79
-        tly_pct = 0.10
-        brx_pct = 0.99
-        bry_pct = 0.30
+        tly_pct = 0.15
+        brx_pct = 0.95 #99
+        bry_pct = 0.25 #30
     
     if mae == -1:
         text = "Missing"
@@ -166,3 +166,27 @@ def poser_selection(pose_data):
             max_area = area
             posedata_with_max_area = posedata
     return posedata_with_max_area
+
+def combo(cv2_img, left_player):
+    if left_player: #box on the left
+        tlx_pct = 0.35
+        tly_pct = 0.25
+        brx_pct = 0.45
+        bry_pct = 0.30
+    if not left_player: #box on the right
+        tlx_pct = 0.85
+        tly_pct = 0.25
+        brx_pct = 0.95
+        bry_pct = 0.30
+    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/combo.png', tlx_pct, tly_pct, brx_pct, bry_pct)
+    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img
+
+def dynamic_object(cv2_img):
+    tlx_pct = 0.09
+    tly_pct = 0.73
+    brx_pct = 0.18
+    bry_pct = 0.89
+    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/ball.png', tlx_pct, tly_pct, brx_pct, bry_pct)
+    cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
+    return cv2_img, tlx, tly, brx, bry

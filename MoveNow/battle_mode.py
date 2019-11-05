@@ -6,7 +6,7 @@ from annotation import annotation
 import requests
 import numpy as np
 from utils import bounding_box_coordinates, overlay_transparent
-from game_tools import find_box, gamebox, criteria, sound_effect, poser_selection
+from game_tools import find_box, gamebox, criteria, sound_effect, poser_selection, combo
 import os
 import random
 import json
@@ -28,16 +28,15 @@ def Battle_Mode(args, posenet):
     else:
         capture = cv2.VideoCapture(0)
     
-    scores = {'similarity':[], 'mae': []}
+    overall_time = 0
     evaluation = False
     result_img = None
     mae = 0
-    textlist = []
     time_to_change_pose = 0
     skip_first_frame = True
     instruction_time = None
-    l_player_act = True
-    l_player_follow = True
+    l_player_act = random.choice([True, False])
+    l_player_follow = l_player_act
     l_display_pose = None
     r_display_pose = None
     intense_music = True
@@ -47,12 +46,14 @@ def Battle_Mode(args, posenet):
     l_brx = None
     l_bry = None
     l_brx_o = None
+    l_combo = []
     """Right heath bar"""
     r_tlx = None
     r_tly = None
     r_brx = None
     r_bry = None
     r_brx_o = None
+    r_combo = []
     """Control the movement of the heath bar"""
     division = 10
     r_health_counter = 0
@@ -62,6 +63,8 @@ def Battle_Mode(args, posenet):
 
     while True:
         starttime = time.time()
+        if not overall_time:
+            overall_time = time.time()
         if args['ip_webcam']:
             img_resp = requests.get(url)
             capture = np.array(bytearray(img_resp.content), dtype = 'uint8')
@@ -208,13 +211,24 @@ def Battle_Mode(args, posenet):
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
                             sound_effect("./sound_effect/Missing.wav")
                         evaluation = False
+                        
+                        """combo"""
+                        if r_combo == []: #empty list
+                            r_combo.append(text)
+                        elif text in r_combo:
+                            r_combo.append(text)
+                        else:
+                            r_combo = []
+                            r_combo.append(text)
+                        
                     else:
                         text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
                     
                     """hit"""
-                    hit = hit_pct (result = text)
+                    print(r_combo)
+                    hit = hit_pct (result = text, result_list = r_combo)
                     r_average_hit = hit / division
-                            
+                    print(hit)
 
                     """reset the pose"""
                     l_display_pose = None
@@ -236,11 +250,21 @@ def Battle_Mode(args, posenet):
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) #show missing
                             sound_effect("./sound_effect/Missing.wav")
                         evaluation = False
+                        
+                        """combo"""
+                        if l_combo == []: #empty list
+                            l_combo.append(text)
+                        elif text in l_combo:
+                            l_combo.append(text)
+                        else:
+                            l_combo = []
+                            l_combo.append(text)
+
                     else:
                         text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) 
                 
                     """hit"""
-                    hit = hit_pct (result = text)
+                    hit = hit_pct (result = text, result_list = l_combo)
                     l_average_hit = hit / division
                     
 
@@ -254,11 +278,16 @@ def Battle_Mode(args, posenet):
                 if r_display_pose: #the right player's pose shown on the left
                     cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = True)
+            """show combo"""
+            if time_to_countdown <= 2.5 and len(r_combo) > 1 and r_average_hit:
+                cv2_img = combo(cv2_img, left_player = False)
 
+            elif time_to_countdown <= 2.5 and len(l_combo) > 1 and l_average_hit:
+                cv2_img = combo(cv2_img, left_player = True)
 
             """hit"""
             #the right player hits the left player
-            if time_to_countdown >= 0 and r_average_hit and r_health_counter <= division:
+            if time_to_countdown >= 0 and r_average_hit and r_health_counter < division:
                 if text == "Poor" or text == "Missing":
                     cv2_img, r_tlx, r_tly, r_brx, r_bry, intense_music = r_health_bar(cv2_img, r_tlx = r_tlx, r_tly = r_tly, r_brx = r_brx, r_bry = r_bry, r_brx_o= r_brx_o, \
                         hit = r_average_hit, intense_music = intense_music)
@@ -272,7 +301,7 @@ def Battle_Mode(args, posenet):
                 r_health_counter += 1
                 
             #the left player hits the right player
-            if time_to_countdown >= 0 and l_average_hit and l_health_counter <= division:
+            if time_to_countdown >= 0 and l_average_hit and l_health_counter < division:
                 if text == "Poor" or text == "Missing":
                     cv2_img, l_tlx, l_tly, l_brx, l_bry, intense_music = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o, \
                         hit = l_average_hit, intense_music = intense_music)
@@ -296,6 +325,20 @@ def Battle_Mode(args, posenet):
                 result_img = cv2_img
                 break
 
+            print(time.time() - overall_time)
+            if time.time() - overall_time >= 180: #3mins
+                if (l_brx - l_tlx) > (r_brx - r_tlx):
+                    l_win = True
+                elif (l_brx - l_tlx) < (r_brx - r_tlx):
+                    l_win = False
+                else:
+                    l_win = None
+                if l_win != None:
+                    cv2_img = winner_symbol(cv2_img, l_win = l_win)
+                result_img = cv2_img
+                break
+
+
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -311,6 +354,8 @@ def Battle_Mode(args, posenet):
     cv2.moveWindow('Result', 0, 0)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+    return "homepage"
 
 def left_right(pose_data, cv2_img, flip):
     l_pose_data = []
@@ -418,15 +463,19 @@ def r_health_bar(cv2_img, r_tlx = None, r_tly = None, r_brx = None, r_bry = None
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img, r_tlx, r_tly, r_brx, r_bry, intense_music
 
-def hit_pct (result):
+def hit_pct(result, result_list):
+    multiplier = 1
+    print(result_list)
+    if result_list != []:
+        multiplier = len(result_list)
     if result == "Poor" or result == "Good":
-        hit = 0.05
+        hit = 0.10 * multiplier
         return hit
     elif result == "Perfect":
-        hit = 0.1
+        hit = 0.15 * multiplier
         return hit
     elif result == "Missing":
-        hit = 0.4
+        hit = 0.4 * multiplier
         return hit
 def winner_symbol(cv2_img, l_win):
     if l_win:

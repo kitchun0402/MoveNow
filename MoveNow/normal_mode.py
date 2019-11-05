@@ -108,39 +108,82 @@ def Normal_Mode(args, posenet):
             
             if len(scores['mae']) == args['n_poses'] and result_time == 0: #intiate a start time to give a buffer to show the evaluation
                 result_time = time.time() 
-            # if len(scores['mae']) == args['n_poses'] and timer >= math.ceil(time_to_change_pose * args['sec'] * 0.2): #control number of poses played
+        
             if len(scores['mae']) == args['n_poses'] and time.time() - result_time >= 1: #hold 1 sec
-                if args['ip_webcam']:
-                    result_img = cv2.imdecode(capture, -1)
-                else:
-                    status, result_img = capture.read()
+                # if args['ip_webcam']:
+                #     result_img = cv2.imdecode(capture, -1)
+                # else:
+                #     status, result_img = capture.read()
+                # result_img = cv2.resize(result_img, (1280, 720))
                 break
             # timer += 1
 
         fps = (1 / (time.time() - starttime))
         cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
         print('FPS: %.1f'%(fps))
-
         # cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
 
-        
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+    capture.release()
     print(textlist)
     results = {'Perfect': 0, 'Good': 0, 'Poor': 0, 'Missing': 0}
     for result in textlist:
         results[result] += 1
     print(results)
-    avg_sim = round(np.mean(np.array(scores['similarity'])) * 100, 2)
-    if args['flip']:
-        result_img = cv2.flip(result_img, 1) #flip the result page
-    
+    # avg_sim = round(np.mean(np.array(scores['similarity'])) * 100, 2)
+    total_poses = len(textlist)
+    perfect_pct = results['Perfect'] / total_poses
+    good_pct = results['Good'] / total_poses
+    poor_pct = results['Poor'] / total_poses
+    missing_pct = results['Missing'] / total_poses
+    # if args['flip']:
+    #     result_img = cv2.flip(result_img, 1) #flip the result page
+    # mixer.music.fadeout(8000)
+    # result_display(result_img, results) #old ver.
+    """result"""
+    capture_ = cv2.VideoCapture(0)
+    start = 0
+    result_count = 1
+    result_img_ = None
+    while True:
+        status, frame = capture_.read()
+        if start == 0:
+            start = time.time()
+        if args['flip']:
+            frame = cv2.flip(frame, 1) #flip the result page
+            frame = cv2.resize(frame, (1280, 720))
+        if time.time() - start >= 0.3 and result_count <= 20: 
+            # perfect_pct *= result_count
+            # good_pct *= result_count
+            # poor_pct *= result_count
+            # missing_pct *= result_count
+            try:
+                cv2_img = display_result(frame, results, perfect_pct, good_pct, poor_pct, missing_pct, result_count)
+            except:
+                pass
+            result_count += 1
+            start = 0
+            
+        cv2.imshow('Result', cv2_img)
+        cv2.moveWindow('Result', 0, 0)
+
+        if result_count > 20:
+            result_img_ = cv2_img
+            result_img_ = cv2.resize(result_img_, (1280, 720))
+            break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    capture_.release()
     mixer.music.fadeout(8000)
-    result_display(result_img, results)
+    cv2.imshow("Result", result_img_)
+    cv2.moveWindow('Result', 0, 0)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return "homepage"
 
 def result_display(cv2_img, results):
     alpha = 0.7
@@ -167,3 +210,47 @@ def instruction_normal(cv2_img):
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
+
+def display_result(cv2_img, results, perfect_pct, good_pct, poor_pct, missing_pct, times):
+    alpha = 0.7
+    overlay = cv2_img.copy()
+
+    """labels"""
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/seperator.png', 0.0764, 0.1278, 0.1092, 0.6153)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/statistics.png', 0.1031, 0.0402, 0.2852, 0.1194)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/perfect.png', 0.0055, 0.1694, 0.0861, 0.2333)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/good.png', 0.0055, 0.2763, 0.0961, 0.3402) #0.0639
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/poor.png', 0.0055, 0.3832, 0.0961, 0.4471)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/missing.png', 0.0055, 0.4901, 0.0861, 0.554)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    
+    
+    """display results"""
+    if perfect_pct != 0:
+        # perfect_brx = 0.2945 * perfect_pct
+        img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_perfect.png', 0.0977, 0.1639, 0.2945, 0.2333)
+        diff_perfect = tlx + int((brx - tlx) * perfect_pct / 20 * times)
+        overlay = overlay_transparent(overlay, img, tlx, tly, (diff_perfect - tlx, bry - tly))
+    if good_pct != 0:
+        # good_brx = 0.2945 * good_pct
+        img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_good.png', 0.0977, 0.2708, 0.2945, 0.3402)
+        diff_good = tlx + int((brx - tlx) * good_pct / 20 * times)
+        overlay = overlay_transparent(overlay, img, tlx, tly, (diff_good - tlx, bry - tly))
+    if poor_pct != 0:
+        # poor_brx = 0.2945 * poor_pct
+        img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_poor.png', 0.0977, 0.3777, 0.2945, 0.4471)
+        diff_poor = tlx + int((brx - tlx) * poor_pct / 20 * times)
+        overlay = overlay_transparent(overlay, img, tlx, tly, (diff_poor - tlx, bry - tly))
+    if missing_pct != 0:
+        # missing_brx = 0.2945 * missing_pct
+        img, tlx, tly, brx, bry = find_box(overlay, './UI_images/result_missing.png', 0.0977, 0.4846, 0.2945, 0.554)
+        diff_missing = tlx + int((brx - tlx) * missing_pct / 20 * times)
+        overlay = overlay_transparent(overlay, img, tlx, tly, (diff_missing - tlx, bry - tly))
+
+    result_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    return result_img

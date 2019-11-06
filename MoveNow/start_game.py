@@ -148,10 +148,11 @@ def Start_Game(args, posenet, output_video = None):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("MoveNow", cv2_img)
         cv2.moveWindow("MoveNow", 0, 0)
-        if args['output_video']:
-            output_video.write(cv2_img)   
+        # if args['output_video']:
+        #     output_video.write(cv2_img)   
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            output_video.release()
+            # output_video.release()
+            capture.release()
             break
         print('fps: %.2f'%(1 / (time.time() - start_time)))
 def initial_bar(cv2_img):

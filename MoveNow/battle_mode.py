@@ -83,12 +83,13 @@ def Battle_Mode(args, posenet, output_video = None):
         l_posedata_with_max_area = poser_selection(l_pose_data)
         r_posedata_with_max_area = poser_selection(r_pose_data)
         
-        if l_posedata_with_max_area: 
-            cv2_img = annotation (cv2_img, l_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
-            normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
-        if r_posedata_with_max_area: 
-            cv2_img = annotation (cv2_img, r_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
-            normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
+        if args['annotated']: 
+            if l_posedata_with_max_area: 
+                cv2_img = annotation (cv2_img, l_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
+                normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
+            if r_posedata_with_max_area: 
+                cv2_img = annotation (cv2_img, r_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
+                normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
         
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
@@ -100,8 +101,8 @@ def Battle_Mode(args, posenet, output_video = None):
             skip_first_frame = False
             cv2.imshow('MoveNow', cv2_img)
             cv2.moveWindow('MoveNow', 0, 0)
-            if output_video != None:
-                output_video.write(cv2_img)
+            # if output_video != None:
+            #     output_video.write(cv2_img)
             continue
         """instructions"""
         if not instruction_time:
@@ -122,13 +123,13 @@ def Battle_Mode(args, posenet, output_video = None):
                 time_to_change_pose = 0
                 
                 if l_display_pose: #left player acted and saved the pose
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = False)
                     l_player_follow = False
                     evaluation = True
                 
                 if r_display_pose: #the right player's pose shown on the left
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = True)
                     l_player_follow = True
                     evaluation = True
@@ -149,10 +150,10 @@ def Battle_Mode(args, posenet, output_video = None):
                 cv2_img = countdown(cv2_img, num = 1)
 
                 if l_display_pose:
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = False)
                 if r_display_pose: #the right player's pose shown on the left
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = True)
                 """Countdown: 2"""
             elif time_to_countdown > 1.6: #2
@@ -161,10 +162,10 @@ def Battle_Mode(args, posenet, output_video = None):
                 cv2_img = countdown(cv2_img, num = 2)
 
                 if l_display_pose:
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = False)
                 if r_display_pose: #the right player's pose shown on the left
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])        
+                    cv2_img, _, _= gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])        
                     cv2_img = followme(cv2_img, shown_on_left = True)
                 """Countdown: 3"""
             elif time_to_countdown > 0.8: #3
@@ -173,10 +174,10 @@ def Battle_Mode(args, posenet, output_video = None):
                 cv2_img = countdown(cv2_img, num = 3)
 
                 if l_display_pose:
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = False)
                 if r_display_pose: #the right player's pose shown on the left
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _= gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = True)
                 """sustain the effect"""
                 if not l_player_follow and l_player_act:
@@ -273,10 +274,10 @@ def Battle_Mode(args, posenet, output_video = None):
                     
                 """followme"""
                 if l_display_pose: #the left player's pose shown on the right
-                    cv2_img, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _ = gamebox(cv2_img, l_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = False, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = False)
                 if r_display_pose: #the right player's pose shown on the left
-                    cv2_img, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
+                    cv2_img, _, _ = gamebox(cv2_img, r_display_pose, prev_posedata = None,  gen_pose = False, gen_pose_left = True, battle_mode = True, flip = args['flip'])
                     cv2_img = followme(cv2_img, shown_on_left = True)
             """show combo"""
             if time_to_countdown <= 2.5 and len(r_combo) > 1 and r_average_hit:
@@ -341,25 +342,27 @@ def Battle_Mode(args, posenet, output_video = None):
 
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
-        if output_video != None:
-            output_video.write(cv2_img)
+        # if output_video != None:
+        #     output_video.write(cv2_img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            capture.release()
             break
 
         fps = (1 / (time.time() - starttime))
-        cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
+        # cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
         print('FPS: %.1f'%(fps))
  
     """Result"""
+    time.sleep(1)
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img)
-    if args['imwrite']:
-        savetime = str(datetime.now().time()).replace(":","")[0:6]
-        cv2.imwrite(f"./result_images/{savetime}.png", result_img)
+    # if args['imwrite']:
+    #     savetime = str(datetime.now().time()).replace(":","")[0:6]
+    #     cv2.imwrite(f"./result_images/{savetime}.png", result_img)
     cv2.moveWindow('Result', 0, 0)
-    if output_video != None:
-        output_video.write(result_img)
+    # if output_video != None:
+    #     output_video.write(result_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 

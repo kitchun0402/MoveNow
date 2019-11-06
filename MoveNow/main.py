@@ -42,6 +42,8 @@ ap.add_argument('-o', '--output-video', action = 'store_true', default = False, 
 ap.add_argument('--output-name', type = str, default = 'gameplay.mp4', help = 'The name of the output video')
 ap.add_argument('--output-fps', type = float, default = 20, help = 'The output video\'s fps')
 ap.add_argument('--imwrite', action = 'store_true', default = False, help = 'Save the result pic')
+ap.add_argument('--annotated', action = 'store_true', default = False, help = 'Annotate the keypoints')
+ap.add_argument('--repeated-poses', action = 'store_false', default = True, help = 'Repeat the poses')
 args = vars(ap.parse_args())
 
 

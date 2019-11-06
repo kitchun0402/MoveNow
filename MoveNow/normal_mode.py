@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 import requests
 import numpy as np
 from utils import bounding_box_coordinates, normalization, zoomin_point, resize_point, centralized_keypoint, find_palm_xy, overlay_transparent
-from game_tools import find_box, gamebox, criteria, sound_effect, pose_generator, poser_selection
+from game_tools import find_box, gamebox, criteria, sound_effect, poser_selection, pose_generator
 import os
 import random
 import json
@@ -16,7 +16,10 @@ from pygame import mixer
 import math
 from datetime import datetime
 
+target_poses = [pose.path for pose in os.scandir('./players/target_posedata/json') if pose.path.endswith('.json')]
+
 def Normal_Mode(args, posenet, output_video = None):
+    global target_poses
     mixer.init()
     playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
     background_music = random.choice(playlist)
@@ -33,7 +36,7 @@ def Normal_Mode(args, posenet, output_video = None):
     else:
         capture = cv2.VideoCapture(0)
     
-    target_poses = [pose.path for pose in os.scandir('./players/target_posedata/json') if pose.path.endswith('.json')]
+    # target_poses = [pose.path for pose in os.scandir('./players/target_posedata/json') if pose.path.endswith('.json')]
     # print(random.choice(target_poses))
     
     prev_posedata = None 
@@ -70,7 +73,7 @@ def Normal_Mode(args, posenet, output_video = None):
             cv2_img = instruction_normal(cv2_img)
         else:
             if not prev_posedata: #initiate a pose
-                cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
+                cv2_img, prev_posedata, target_poses = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True, repeated_poses = args['repeated_poses'])
             if time_to_change_pose == 0: #initial time to changing a pose
                 time_to_change_pose = time.time()
             time_passed = time.time() - time_to_change_pose #time interval
@@ -98,11 +101,11 @@ def Normal_Mode(args, posenet, output_video = None):
                     sound_effect("./sound_effect/Missing.wav")
                     scores['mae'].append(np.nan)
                     textlist.append(text)
-                cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True)
+                cv2_img, prev_posedata, target_poses = gamebox(cv2_img, target_poses, prev_posedata = None, gen_pose = True, repeated_poses = args['repeated_poses'])
                 # timer = 0 #reset timer
                 time_to_change_pose = 0
             else:
-                cv2_img, prev_posedata = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False) #repeated the same result
+                cv2_img, prev_posedata, target_poses = gamebox(cv2_img, target_poses, prev_posedata =  prev_posedata, gen_pose = False, repeated_poses = args['repeated_poses']) #repeated the same result
                 if time_passed <= 1 and not initial_pose: #in second, time to show the evaluation
                 # if timer < math.ceil(time_to_change_pose * args['sec'] * 0.3) and timer != 0: #the time of showing the result (sec.)
                     text, cv2_img = criteria(mae, cv2_img)
@@ -126,18 +129,17 @@ def Normal_Mode(args, posenet, output_video = None):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
-        if output_video != None:
-            output_video.write(cv2_img)
+        # if output_video != None:
+        #     output_video.write(cv2_img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     capture.release()
-    print(textlist)
+    # print(textlist)
     results = {'Perfect': 0, 'Good': 0, 'Poor': 0, 'Missing': 0}
     for result in textlist:
         results[result] += 1
-    print(results)
-    # avg_sim = round(np.mean(np.array(scores['similarity'])) * 100, 2)
+    # print(results)
     total_poses = len(textlist)
     perfect_pct = results['Perfect'] / total_poses
     good_pct = results['Good'] / total_poses
@@ -148,6 +150,7 @@ def Normal_Mode(args, posenet, output_video = None):
     # mixer.music.fadeout(8000)
     # result_display(result_img, results) #old ver.
     """result"""
+    time.sleep(1)
     capture_ = cv2.VideoCapture(0)
     start = 0
     result_count = 1

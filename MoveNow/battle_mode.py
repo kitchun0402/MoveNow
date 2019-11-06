@@ -6,7 +6,7 @@ from annotation import annotation
 import requests
 import numpy as np
 from utils import bounding_box_coordinates, overlay_transparent
-from game_tools import find_box, gamebox, criteria, sound_effect, poser_selection, combo
+from game_tools import find_box, gamebox, criteria, sound_effect, poser_selection, combo, player_indicator
 import os
 import random
 import json
@@ -82,19 +82,28 @@ def Battle_Mode(args, posenet, output_video = None):
         """save the front poser only"""
         l_posedata_with_max_area = poser_selection(l_pose_data)
         r_posedata_with_max_area = poser_selection(r_pose_data)
-        
         if args['annotated']: 
             if l_posedata_with_max_area: 
                 cv2_img = annotation (cv2_img, l_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
                 normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
             if r_posedata_with_max_area: 
                 cv2_img = annotation (cv2_img, r_posedata_with_max_area,keypoint_min_score = args['keypoint_min_score'], keypoints_ratio = args['keypoints_ratio'], threshold_denoise = args['threshold_denoise'], 
-                normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400) 
+                normalized = False, pose_id = args['pose_id'], resize = False, resize_W = 200, resize_H = 400)
+        
+        if l_posedata_with_max_area != None:
+            try:
+                cv2_img = player_indicator(cv2_img, l_posedata_with_max_area, player_num = 1)
+            except:
+                pass
+        if r_posedata_with_max_area != None:
+            try:
+                cv2_img = player_indicator(cv2_img, r_posedata_with_max_area, player_num = 2)
+            except:
+                pass
         
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1) #flip the frame
         
-
         """skip 1st frame to get better loading"""
         
         if skip_first_frame:
@@ -105,6 +114,7 @@ def Battle_Mode(args, posenet, output_video = None):
             #     output_video.write(cv2_img)
             continue
         """instructions"""
+        
         if not instruction_time:
             instruction_time = time.time()
         if time.time() - instruction_time <= 6: #load 8 sec
@@ -112,7 +122,6 @@ def Battle_Mode(args, posenet, output_video = None):
         else:
             if not time_to_change_pose: #initial time of changing a pose
                 time_to_change_pose = time.time()
-
             """who to pose"""
             cv2_img = who_to_pose(cv2_img, left_to_pose = l_player_act)
 
@@ -142,7 +151,6 @@ def Battle_Mode(args, posenet, output_video = None):
                 if not l_player_act and not l_player_follow: 
                     r_display_pose = r_posedata_with_max_area
                 
-                    
             """Countdown: 1"""
             if  time_to_countdown > 2.4: #1
                 cv2_img, l_tlx, l_tly, l_brx, l_bry, _ = l_health_bar(cv2_img, l_tlx = l_tlx, l_tly = l_tly, l_brx = l_brx, l_bry = l_bry, l_brx_o = l_brx_o, intense_music = intense_music)
@@ -339,7 +347,7 @@ def Battle_Mode(args, posenet, output_video = None):
                 result_img = cv2_img
                 break
 
-
+        
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
         # if output_video != None:

@@ -185,12 +185,12 @@ def Normal_Mode(args, posenet, output_video = None):
     mixer.music.fadeout(8000)
     cv2.imshow("Result", result_img_)
     cv2.moveWindow('Result', 0, 0)
-    if args['imwrite']:
-        savetime = str(datetime.now().time()).replace(":","")[0:6]
-        cv2.imwrite(f"./result_images/{savetime}.png", result_img)
+    # if args['imwrite']:
+    #     savetime = str(datetime.now().time()).replace(":","")[0:6]
+    #     cv2.imwrite(f"./result_images/{savetime}.png", result_img)
 
-    if output_video != None:
-        output_video.write(cv2_img)
+    # if output_video != None:
+    #     output_video.write(cv2_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     return "homepage"

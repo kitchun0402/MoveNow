@@ -51,17 +51,21 @@ posenet = LoadModel(weight_dir = args['weight_dir'], model_id = args['model_id']
     pose_model_name = "PoseNet", useGPU = args['useGPU'], verbose = args['verbose'])
 
 def homepage(args = args, output_video = None):
-    game_mode, output_video = Start_Game(args = args, posenet = posenet)
-    if game_mode == "normal":
-        back_to_home = Normal_Mode(args = args, posenet = posenet, output_video= output_video)
-    if game_mode == "battle":
-        back_to_home = Battle_Mode(args = args, posenet = posenet, output_video = output_video)
+    try:
+        game_mode, output_video = Start_Game(args = args, posenet = posenet)
+        if game_mode == "normal":
+            back_to_home = Normal_Mode(args = args, posenet = posenet, output_video= output_video)
+        if game_mode == "battle":
+            back_to_home = Battle_Mode(args = args, posenet = posenet, output_video = output_video)
+
     # try:
     #     if back_to_home == "homepage":
     #         # args['output_video'] = False
     #         homepage() #recursive
     # except:
     #     pass
+    except:
+        pass
 
 if __name__ == "__main__":
     homepage()

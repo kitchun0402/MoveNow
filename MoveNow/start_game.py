@@ -10,9 +10,9 @@ import os
 import random
 from pygame import mixer
 import math
-from game_tools import poser_selection, sound_effect
+from game_tools import poser_selection, sound_effect, screen_record
 
-def Start_Game(args, posenet):
+def Start_Game(args, posenet, output_video = None):
     mixer.init()
     mixer.music.load('./intro_music/LAKEY INSPIRED - Chill Day.mp3')
     mixer.music.set_volume(1)
@@ -23,6 +23,8 @@ def Start_Game(args, posenet):
         assert url.startswith("http://"), "IP address should start with http://"
     else:
         capture = cv2.VideoCapture(0)
+        if args['output_video']:
+            output_video = screen_record(capture, output_file_path = './' + args['output_name'], fps = args['output_fps'])
     
     tlx_new = 0
     brx_new = 0
@@ -50,14 +52,12 @@ def Start_Game(args, posenet):
         if args['flip']:
             cv2_img = cv2.flip(cv2_img, 1)
 
-        # cv2_img = start_game_button(cv2_img)
         if pose_data['poses']:
-            print('x', int(pose_data['poses'][0]['l_wrist']['x']))
-            print('y', int(pose_data['poses'][0]['l_wrist']['y'] * 0.8))
-            print('x', int(cv2_img.shape[1] * 0.51))
-            print('x2', int(cv2_img.shape[1] * 0.49))
-            print('y', int(cv2_img.shape[0] * 0.1))
-
+            # print('x', int(pose_data['poses'][0]['l_wrist']['x']))
+            # print('y', int(pose_data['poses'][0]['l_wrist']['y'] * 0.8))
+            # print('x', int(cv2_img.shape[1] * 0.51))
+            # print('x2', int(cv2_img.shape[1] * 0.49))
+            # print('y', int(cv2_img.shape[0] * 0.1))
             #touch option bar
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.43)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
@@ -80,10 +80,10 @@ def Start_Game(args, posenet):
                         normal_timer = time.time()
                     if time.time() - normal_timer >= 1:
                         sound_effect('./sound_effect/click_button.wav')
-                    # if normal_timer % math.ceil(fps * 2) == 0 and normal_timer != 0: #hold 2 sec to get into normal mode
                         mixer.music.fadeout(5000)
                         game_mode = "normal"
-                        return game_mode
+                        loading(cv2_img, loading = 3, video = output_video)
+                        return game_mode, output_video
                     # normal_timer += 1
             elif not battle_clicked:
                 normal_clicked = False
@@ -102,10 +102,10 @@ def Start_Game(args, posenet):
                         battle_timer = time.time()
                     if time.time() - battle_timer >= 1:
                         sound_effect('./sound_effect/click_button.wav')
-                    # if battle_timer % math.ceil(fps * 2) == 0 and battle_timer != 0: #hold 2 sec to get into normal mode
                         mixer.music.fadeout(5000)
                         game_mode = "battle"
-                        return game_mode
+                        loading(cv2_img, loading = 3, video = output_video)
+                        return game_mode, output_video
                     # battle_timer += 1
                     
             elif not normal_clicked:
@@ -148,38 +148,19 @@ def Start_Game(args, posenet):
         # cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow("MoveNow", cv2_img)
         cv2.moveWindow("MoveNow", 0, 0)
-
-        # if counter < 21:
-        #     timer += 1
-        
-        
+        # if args['output_video']:
+        #     output_video.write(cv2_img)   
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            # output_video.release()
+            capture.release()
             break
         print('fps: %.2f'%(1 / (time.time() - start_time)))
-
-def start_game_button(cv2_img):
-    alpha = 0.7
-    overlay = cv2_img.copy()
-    cv2.rectangle(overlay, (int(overlay.shape[1] * 0.495), int(overlay.shape[0] * 0.05)), (int(overlay.shape[1] * 0.635), int(overlay.shape[0] * 0.125)), (224, 224, 224), -1)       
-    cv2.putText(overlay, "Move Now", (int(overlay.shape[1] / 2), int(overlay.shape[0] * 0.1)), cv2.FONT_HERSHEY_COMPLEX, 1, (102, 102, 255), 3, cv2.LINE_AA)
-    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
-    return cv2_img
-
 def initial_bar(cv2_img):
-    # tlx = int(cv2_img.shape[1] * 0.49)
-    # tly = int(cv2_img.shape[0] * 0.05)
-    # brx = int(cv2_img.shape[1] * 0.51)
-    # bry = int(cv2_img.shape[0] * 0.12)
-    # cv2.rectangle(cv2_img, (tlx, tly), (brx, bry), (255, 178, 102), -1)
     logo = cv2.imread('./UI_images/button_movenow.png', cv2.IMREAD_UNCHANGED)
     tlx = int(cv2_img.shape[1] * 0.43)
     tly = int(cv2_img.shape[0] * 0.02)
     brx = int(cv2_img.shape[1] * 0.5296875)
     bry = int(cv2_img.shape[0] * 0.15083)
-    # tlx = int(cv2_img.shape[1] * 0.46953125)
-    # tly = int(cv2_img.shape[0] * 0.0375)
-    # brx = int(cv2_img.shape[1] * 0.5296875)
-    # bry = int(cv2_img.shape[0] * 0.13333333333333333)
     cv2_img = overlay_transparent(cv2_img, logo, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 
@@ -230,8 +211,19 @@ def battle_button(cv2_img, click):
 def instruction(cv2_img):
     alpha = 0.8
     overlay = cv2_img.copy()
-    # img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00625, 0.018055555555555554, 0.33359375, 0.25277777777777777)
-    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00859375, 0.018055555555555554, 0.4, 0.22777777777777777)
+    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00859375, 0.018055555555555554, 0.4, 0.3)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
+
+def loading(cv2_img, loading = 1, video = None):
+    alpha = 0.8
+    overlay = cv2_img.copy()
+    img, tlx, tly, brx, bry = find_box(cv2_img, f"./UI_images/loading{loading}.png", 0.19, 0.40, 0.76, 0.60)
+    overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    cv2.imshow("MoveNow", cv2_img)
+    cv2.moveWindow("MoveNow", 0, 0)
+    if video != None:
+        video.write(cv2_img)
+    cv2.waitKey(2)

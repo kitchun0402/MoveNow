@@ -39,12 +39,10 @@ def read_cap(cap, ip_webcam = False, scale_factor=1.0, output_stride=16):
     # img = cv2.resize(img, (target_width, target_height), interpolation=cv2.INTER_LINEAR)
     return _process_input(img, scale_factor, output_stride)
 
-
 def read_imgfile(path, scale_factor=1.0, output_stride=16):
     img = cv2.imread(path)
-    img = cv2.resize(img, (1280, 720)) #resize
+    # img = cv2.resize(img, (1280, 720)) #resize
     return _process_input(img, scale_factor, output_stride)
-
 
 def draw_keypoints(
         img, instance_scores, keypoint_scores, keypoint_coords,

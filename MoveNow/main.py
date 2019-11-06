@@ -17,6 +17,7 @@ import math
 from battle_mode import Battle_Mode
 from normal_mode import Normal_Mode
 from start_game import Start_Game
+from datetime import datetime
 
 ap =  ArgumentParser()
 ap.add_argument('-name', dest = 'pose_id', type = str, default = '0', help = "Your Name to display")
@@ -37,16 +38,32 @@ ap.add_argument('--threshold-denoise', type = float, default = 0.03, choices =  
 ap.add_argument('--flip', action = "store_true", default = False, help = 'Flip the screen if it\'s inverse')
 ap.add_argument('--sec', type = float, default = 5.0, help = 'How many second to change a new pose')
 ap.add_argument('--n-poses', type = int, default = 10, help = 'How many poses you wanna play with')
+ap.add_argument('-o', '--output-video', action = 'store_true', default = False, help = 'Record a gameplay')
+ap.add_argument('--output-name', type = str, default = 'gameplay.mp4', help = 'The name of the output video')
+ap.add_argument('--output-fps', type = float, default = 20, help = 'The output video\'s fps')
+ap.add_argument('--imwrite', action = 'store_true', default = False, help = 'Save the result pic')
+ap.add_argument('--annotated', action = 'store_true', default = False, help = 'Annotate the keypoints')
+ap.add_argument('--repeated-poses', action = 'store_false', default = True, help = 'Repeat the poses')
 args = vars(ap.parse_args())
 
 
 posenet = LoadModel(weight_dir = args['weight_dir'], model_id = args['model_id'], output_stride = args['output_stride'], 
     pose_model_name = "PoseNet", useGPU = args['useGPU'], verbose = args['verbose'])
 
-if __name__ == "__main__":
-    game_mode = Start_Game(args = args, posenet = posenet)
+def homepage(args = args, output_video = None):
+    game_mode, output_video = Start_Game(args = args, posenet = posenet)
     if game_mode == "normal":
-        Normal_Mode(args = args, posenet = posenet)
+        back_to_home = Normal_Mode(args = args, posenet = posenet, output_video= output_video)
     if game_mode == "battle":
-        Battle_Mode(args = args, posenet = posenet)
+        back_to_home = Battle_Mode(args = args, posenet = posenet, output_video = output_video)
+    # try:
+    #     if back_to_home == "homepage":
+    #         # args['output_video'] = False
+    #         homepage() #recursive
+    # except:
+    #     pass
+
+if __name__ == "__main__":
+    homepage()
+
 #find the beat

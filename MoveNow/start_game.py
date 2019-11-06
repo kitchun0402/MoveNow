@@ -54,26 +54,27 @@ def Start_Game(args, posenet, output_video = None):
 
         if pose_data['poses']:
             # print('x', int(pose_data['poses'][0]['l_wrist']['x']))
-            # print('y', int(pose_data['poses'][0]['l_wrist']['y'] * 0.8))
+            # print('y', int(pose_data['poses'][0]['l_wrist']['y']))
+            # print('y', int(pose_data['poses'][0]['l_wrist']['y'] * 0.6))
             # print('x', int(cv2_img.shape[1] * 0.51))
             # print('x2', int(cv2_img.shape[1] * 0.49))
-            # print('y', int(cv2_img.shape[0] * 0.1))
+            # print('y', int(cv2_img.shape[0] * 0.15083))
             #touch option bar
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.43)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.15083)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.15083)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.43)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.5296875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.15083)):
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.15083)):
                     touch = True
             
             #touch normal button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1125)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.1125)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.53828125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.61796875)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1125)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.1125)) and \
                         counter >= 10: #counter >= no. of frame, then the user can touch the button
                     normal_clicked = True
                     if normal_timer == 0:
@@ -92,10 +93,10 @@ def Start_Game(args, posenet, output_video = None):
             #touch battle button
             if (int(pose_data['poses'][0]['l_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['l_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
+                    int(pose_data['poses'][0]['l_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.1111111111111111)) or \
                 (int(pose_data['poses'][0]['r_wrist']['x']) < int(cv2_img.shape[1] * (1 - 0.63203125)) and \
                     int(pose_data['poses'][0]['r_wrist']['x']) > int(cv2_img.shape[1] * (1 - 0.71015625)) and \
-                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.5) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
+                    int(pose_data['poses'][0]['r_wrist']['y'] * 0.8) < int(cv2_img.shape[0] * 0.1111111111111111)) and \
                         counter >= 18: #counter >= no. of frame, then the user can touch the button
                     battle_clicked = True
                     if battle_timer == 0:

@@ -188,3 +188,17 @@ def screen_record(capture, output_file_path, fps = 20):
     size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     output_video = cv2.VideoWriter(output_file_path, fourcc, fps, size)
     return output_video
+
+def player_indicator(cv2_img, posedata, player_num):
+    l_eye_xy = (posedata['l_eye']['x'], posedata['l_eye']['y'])
+    r_eye_xy = (posedata['r_eye']['x'], posedata['r_eye']['y'])
+    tlx_pct = r_eye_xy[0] / cv2_img.shape[1] * 0.98
+    tly_pct = r_eye_xy[1] / cv2_img.shape[0] * 0.60
+    brx_pct = l_eye_xy[0] / cv2_img.shape[1] * 1.02
+    bry_pct = r_eye_xy[1] / cv2_img.shape[0] * 0.70
+    alpha = 0.8
+    overlay = cv2_img.copy()
+    img, tlx, tly, brx, bry = find_box(overlay, f'./UI_images/player{player_num}.png', tlx_pct, tly_pct, brx_pct, bry_pct)
+    overlay = overlay_transparent(overlay, img, tlx, int(tly), (brx - tlx, int(bry) - int(tly)))
+    cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
+    return cv2_img 

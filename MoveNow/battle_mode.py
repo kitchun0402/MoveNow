@@ -13,7 +13,6 @@ import json
 from pygame import mixer
 import math
 from datetime import datetime
-
 def Battle_Mode(args, posenet, output_video = None):
     mixer.init()
     playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
@@ -230,7 +229,6 @@ def Battle_Mode(args, posenet, output_video = None):
                     """hit"""
                     hit = hit_pct (result = text, result_list = r_combo)
                     r_average_hit = hit / division
-                    print('r_average_hit', l_average_hit)
 
                     """reset the pose"""
                     l_display_pose = None
@@ -479,10 +477,10 @@ def hit_pct(result, result_list):
     if result_list != []:
         multiplier = len(result_list)
     if result == "Poor" or result == "Good":
-        hit = 0.10 * multiplier
+        hit = 0.15 * multiplier
         return hit
     elif result == "Perfect":
-        hit = 0.15 * multiplier
+        hit = 0.20 * multiplier
         return hit
     elif result == "Missing":
         hit = 0.4 * multiplier

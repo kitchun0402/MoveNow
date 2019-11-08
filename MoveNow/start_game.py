@@ -212,7 +212,7 @@ def battle_button(cv2_img, click):
 def instruction(cv2_img):
     alpha = 0.8
     overlay = cv2_img.copy()
-    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.00859375, 0.018055555555555554, 0.4, 0.3)
+    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/instruction.png", 0.005, 0.018055555555555554, 0.45, 0.35)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img

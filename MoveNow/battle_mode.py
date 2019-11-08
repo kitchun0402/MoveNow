@@ -558,7 +558,7 @@ def who_to_pose(cv2_img, left_to_pose):
 def instruction_battle(cv2_img):
     alpha = 0.8
     overlay = cv2_img.copy()
-    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/instruction_battle.png', 0.2805, 0.2914, 0.7219, 0.5792)
+    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/instruction_battle.png', 0.2305, 0.2914, 0.7719, 0.70)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img

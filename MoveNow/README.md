@@ -38,37 +38,37 @@ Add your favourite background music to MoveNow/background_music, default: MP3
 
 ## Arguments
 ***1. --weight-dir***, type = str, default = "./model_"
-   - Path to the model weight
+- Path to the model weight
    
 ***2. --model-id***, type = int, choices = [50, 75, 100, 101], default = 101
 
 ***3. --useGPU***, default = False
 
 ***4. --scale-factor***, type = float, default = 1, choices = np.arange(0, 1.1, 0.1).round(2)
-	- Factor to scale down the image to process
+- Factor to scale down the image to process
 	
 ***5. --flip***, default = False
-	- Flip the screen if it's inverse
+- Flip the screen if it's inverse
 	
 ***6. --sec***, type = float, default = 5.0
-	- How many second to change a new pose
+- How many second to change a new pose
 
 ***7. --n-poses***, type = int, default = 10
-	- How many poses you wanna play with
+- How many poses you wanna play with
 
 ***8. -o / --output-video***, default = False
-	- Record a gameplay for your first play (works in macOS)
+- Record a gameplay for your first play (works in macOS)
 	
 ***9. --output-name***, type = str, default = "gameplay.mp4"
-	- The name of the output video
+- The name of the output video
 
 ***10. --output-fps***, type = float, default = 20
-	- The output video's fps
+- The output video's fps
 
 ***11. --imwrite***, default = False
-	- Save the result pic to the result_images directory (works in macOS)
+- Save the result pic to the result_images directory (works in macOS)
 	
 ***12. --repeated-poses***, default = False
-	- Repeat the poses in Normal Mode
+- Repeat the poses in Normal Mode
 
 

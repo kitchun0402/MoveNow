@@ -24,7 +24,7 @@ Besides, use GPU with scale factor, which is set to 1, would have better experie
 
 - If you are using CPU and the fps is low, please adjust the scale factor to ***below 0.5*** but it will affect the accuracy of Human Pose Estimation.
 
-- Press Q to quit the program
+- Press ***Q*** to quit the program
 
 ## Upload Your Own Poses / Background Music
 ### Your Own Poses (can only handle some easy poses)

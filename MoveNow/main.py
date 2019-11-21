@@ -43,12 +43,12 @@ ap.add_argument('--output-name', type = str, default = 'gameplay.mp4', help = 'T
 ap.add_argument('--output-fps', type = float, default = 20, help = 'The output video\'s fps')
 ap.add_argument('--imwrite', action = 'store_true', default = False, help = 'Save the result pic')
 ap.add_argument('--annotated', action = 'store_true', default = False, help = 'Annotate the keypoints')
-ap.add_argument('--repeated-poses', action = 'store_false', default = True, help = 'Repeat the poses')
+ap.add_argument('--repeated-poses', action = 'store_true', default = False, help = 'Repeat the poses')
 args = vars(ap.parse_args())
-
 
 posenet = LoadModel(weight_dir = args['weight_dir'], model_id = args['model_id'], output_stride = args['output_stride'], 
     pose_model_name = "PoseNet", useGPU = args['useGPU'], verbose = args['verbose'])
+
 
 def homepage(args = args, output_video = None):
     try:
@@ -57,17 +57,14 @@ def homepage(args = args, output_video = None):
             back_to_home = Normal_Mode(args = args, posenet = posenet, output_video= output_video)
         if game_mode == "battle":
             back_to_home = Battle_Mode(args = args, posenet = posenet, output_video = output_video)
-
-    # try:
-    #     if back_to_home == "homepage":
-    #         # args['output_video'] = False
-    #         homepage() #recursive
-    # except:
-    #     pass
+        try:
+            if back_to_home == "homepage":
+                args['output_video'] = False
+                homepage()
+        except:
+            pass
     except:
         pass
 
 if __name__ == "__main__":
     homepage()
-
-#find the beat

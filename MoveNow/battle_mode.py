@@ -13,9 +13,11 @@ import json
 from pygame import mixer
 import math
 from datetime import datetime
+
+current_path = os.getcwd()
 def Battle_Mode(args, posenet, output_video = None):
     mixer.init()
-    playlist = [music.path for music in os.scandir('./background_music') if music.path.endswith('.mp3')]
+    playlist = [music.path for music in os.scandir(current_path + '/background_music') if music.path.endswith('.mp3')]
     background_music = random.choice(playlist)
     mixer.music.load(background_music)
     mixer.music.set_volume(1)
@@ -76,8 +78,6 @@ def Battle_Mode(args, posenet, output_video = None):
         
         """middle line"""
         cv2_img = seperator(cv2_img)
-        # cv2.line(cv2_img, (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0] * 0.1)), (int(cv2_img.shape[1] * 0.5), int(cv2_img.shape[0])), (153,204,255), 5)
-        
         
         """save the front poser only"""
         l_posedata_with_max_area = poser_selection(l_pose_data)
@@ -108,10 +108,12 @@ def Battle_Mode(args, posenet, output_video = None):
         
         if skip_first_frame:
             skip_first_frame = False
+            cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+            cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('MoveNow', cv2_img)
             cv2.moveWindow('MoveNow', 0, 0)
-            # if output_video != None:
-            #     output_video.write(cv2_img)
+            if output_video != None:
+                output_video.write(cv2_img)
             continue
         """instructions"""
         
@@ -126,7 +128,6 @@ def Battle_Mode(args, posenet, output_video = None):
             cv2_img = who_to_pose(cv2_img, left_to_pose = l_player_act)
 
             time_to_countdown = time.time() - time_to_change_pose
-            print('Time: ', time_to_countdown)
             """Buffer"""
             if time_to_countdown > 3.2: #buffer
                 time_to_change_pose = 0
@@ -212,15 +213,15 @@ def Battle_Mode(args, posenet, output_video = None):
                             _, mae = Evaluate(r_posedata_with_max_area, l_display_pose)
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True)
                             if text == 'Poor':
-                                sound_effect("./sound_effect/Poor.wav")
+                                sound_effect(current_path + "/sound_effect/Poor.wav")
                             elif text == 'Good':
-                                sound_effect("./sound_effect/Good.wav")
+                                sound_effect(current_path + "/sound_effect/Good.wav")
                             elif text == 'Perfect':
-                                sound_effect("./sound_effect/Perfect.wav")
+                                sound_effect(current_path + "/sound_effect/Perfect.wav")
                         except:
                             mae = -1 
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = False, battle_mode_right_player = True) #show missing
-                            sound_effect("./sound_effect/Missing.wav")
+                            sound_effect(current_path + "/sound_effect/Missing.wav")
                         evaluation = False
                         
                         """combo"""
@@ -249,15 +250,15 @@ def Battle_Mode(args, posenet, output_video = None):
                             _, mae = Evaluate(l_posedata_with_max_area, r_display_pose)
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False)
                             if text == 'Poor':
-                                sound_effect("./sound_effect/Poor.wav")
+                                sound_effect(current_path + "/sound_effect/Poor.wav")
                             elif text == 'Good':
-                                sound_effect("./sound_effect/Good.wav")
+                                sound_effect(current_path + "/sound_effect/Good.wav")
                             elif text == 'Perfect':
-                                sound_effect("./sound_effect/Perfect.wav")
+                                sound_effect(current_path + "/sound_effect/Perfect.wav")
                         except:
                             mae = -1 
                             text, cv2_img = criteria(mae, cv2_img, battle_mode_left_player = True, battle_mode_right_player = False) #show missing
-                            sound_effect("./sound_effect/Missing.wav")
+                            sound_effect(current_path + "/sound_effect/Missing.wav")
                         evaluation = False
                         
                         """combo"""
@@ -275,7 +276,6 @@ def Battle_Mode(args, posenet, output_video = None):
                     """hit"""
                     hit = hit_pct (result = text, result_list = l_combo)
                     l_average_hit = hit / division
-                    # print('l_average_hit', l_average_hit)
 
                     """reset the pose"""
                     r_display_pose = None
@@ -334,7 +334,6 @@ def Battle_Mode(args, posenet, output_video = None):
                 result_img = cv2_img
                 break
 
-            print(time.time() - overall_time)
             if time.time() - overall_time >= 180: #3mins
                 if (l_brx - l_tlx) > (r_brx - r_tlx):
                     l_win = True
@@ -347,30 +346,32 @@ def Battle_Mode(args, posenet, output_video = None):
                 result_img = cv2_img
                 break
 
-        
+        cv2.namedWindow('MoveNow', cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty('MoveNow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.imshow('MoveNow', cv2_img)
         cv2.moveWindow('MoveNow', 0, 0)
-        # if output_video != None:
-        #     output_video.write(cv2_img)
+        if output_video != None:
+            output_video.write(cv2_img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             capture.release()
             break
 
         fps = (1 / (time.time() - starttime))
-        # cv2.putText(cv2_img, 'FPS: %.1f'%(fps), (round(cv2_img.shape[1] * 0.01), round(cv2_img.shape[0] * 0.03)), cv2.FONT_HERSHEY_COMPLEX, 0.5, (32, 32, 32), 2)
         print('FPS: %.1f'%(fps))
  
     """Result"""
     time.sleep(1)
     mixer.music.fadeout(8000)
+    cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Result', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     cv2.imshow("Result", result_img)
-    # if args['imwrite']:
-    #     savetime = str(datetime.now().time()).replace(":","")[0:6]
-    #     cv2.imwrite(f"./result_images/{savetime}.png", result_img)
+    if args['imwrite']:
+        savetime = str(datetime.now().time()).replace(":","")[0:6]
+        cv2.imwrite(f"{current_path}/result_images/{savetime}.png", result_img)
     cv2.moveWindow('Result', 0, 0)
-    # if output_video != None:
-    #     output_video.write(result_img)
+    if output_video != None:
+        output_video.write(result_img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -393,15 +394,15 @@ def left_right(pose_data, cv2_img, flip):
                 r_pose_data.append(pose)
     return {'poses': l_pose_data}, {'poses': r_pose_data}
 def countdown(cv2_img, num):
-    img, tlx, tly, brx, bry = find_box(cv2_img, f'./UI_images/countdown_{str(num)}.png', 0.48515625, 0, 0.51328125, 0.09722222222222222)
+    img, tlx, tly, brx, bry = find_box(cv2_img, f'{current_path}/UI_images/countdown_{str(num)}.png', 0.48515625, 0, 0.51328125, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 def countdown_pose(cv2_img):
-    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_pose.png', 0.46640625, 0, 0.53359375, 0.09722222222222222)
+    img, tlx, tly, brx, bry = find_box(cv2_img, current_path + '/UI_images/countdown_pose.png', 0.46640625, 0, 0.53359375, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 def countdown_movenow(cv2_img):
-    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/countdown_movenow.png', 0.43828125, 0, 0.56171875, 0.09722222222222222)
+    img, tlx, tly, brx, bry = find_box(cv2_img, current_path + '/UI_images/countdown_movenow.png', 0.43828125, 0, 0.56171875, 0.09722222222222222)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 
@@ -410,17 +411,17 @@ def l_health_bar(cv2_img, l_tlx = None, l_tly = None, l_brx = None, l_bry = None
     overlay = cv2_img.copy()
 
     """Background"""
-    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/health_bar_bg.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
+    img, tlx, tly, brx, bry = find_box(cv2_img, current_path + "/UI_images/health_bar_bg.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
 
     """Actual Health"""
     if l_brx_o:
         if l_brx - l_tlx >= int((l_brx_o - l_tlx) * 0.3): #change the color of the health bar
-            health_img = "./UI_images/health_bar_green.png"
+            health_img = current_path + "/UI_images/health_bar_green.png"
         else:
-            health_img = "./UI_images/health_bar.png"
+            health_img = current_path + "/UI_images/health_bar.png"
             if intense_music:
-                playlist = [music.path for music in os.scandir('./intense_music') if music.path.endswith('.mp3')]
+                playlist = [music.path for music in os.scandir(current_path + '/intense_music') if music.path.endswith('.mp3')]
                 background_music = random.choice(playlist)
                 mixer.music.stop()
                 mixer.music.load(background_music)
@@ -429,7 +430,7 @@ def l_health_bar(cv2_img, l_tlx = None, l_tly = None, l_brx = None, l_bry = None
                 intense_music = False
 
     if not l_tlx: #inital
-        img, l_tlx, l_tly, l_brx, l_bry = find_box(cv2_img, "./UI_images/health_bar_green.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
+        img, l_tlx, l_tly, l_brx, l_bry = find_box(cv2_img, current_path + "/UI_images/health_bar_green.png", 0.07265625, 0.015277777777777777, 0.375, 0.09444444444444444)
         
     else:
         img = cv2.imread(health_img, cv2.IMREAD_UNCHANGED)
@@ -449,17 +450,17 @@ def r_health_bar(cv2_img, r_tlx = None, r_tly = None, r_brx = None, r_bry = None
     alpha = 0.8
     overlay = cv2_img.copy()
     """Background"""
-    img, tlx, tly, brx, bry = find_box(cv2_img, "./UI_images/health_bar_bg.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
+    img, tlx, tly, brx, bry = find_box(cv2_img, current_path + "/UI_images/health_bar_bg.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
 
     """Actual Health"""
     if r_brx_o:
         if r_brx - r_tlx >= int((r_brx_o - r_tlx) * 0.3): #change the color of the health bar
-            health_img = "./UI_images/health_bar_green.png"
+            health_img = current_path + "/UI_images/health_bar_green.png"
         else:
-            health_img = "./UI_images/health_bar.png" #change to red color
+            health_img = current_path + "/UI_images/health_bar.png" #change to red color
             if intense_music:
-                playlist = [music.path for music in os.scandir('./intense_music') if music.path.endswith('.mp3')]
+                playlist = [music.path for music in os.scandir(current_path + '/intense_music') if music.path.endswith('.mp3')]
                 background_music = random.choice(playlist)
                 mixer.music.stop()
                 mixer.music.load(background_music)
@@ -468,7 +469,7 @@ def r_health_bar(cv2_img, r_tlx = None, r_tly = None, r_brx = None, r_bry = None
                 intense_music = False
 
     if not r_tlx: #inital
-        img, r_tlx, r_tly, r_brx, r_bry = find_box(cv2_img, "./UI_images/health_bar_green.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
+        img, r_tlx, r_tly, r_brx, r_bry = find_box(cv2_img, current_path + "/UI_images/health_bar_green.png", 0.60625, 0.015277777777777777, 0.90859375, 0.09444444444444444)
     else:
         img = cv2.imread(health_img, cv2.IMREAD_UNCHANGED)
     if r_brx_o: #initiate an original point
@@ -508,14 +509,14 @@ def winner_symbol(cv2_img, l_win):
         brx_pct = 0.99
         bry_pct = 0.33
 
-    img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/winner.png', tlx_pct, tly_pct, brx_pct, bry_pct)
+    img, tlx, tly, brx, bry = find_box(cv2_img, current_path + '/UI_images/winner.png', tlx_pct, tly_pct, brx_pct, bry_pct)
     cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return cv2_img
 
 def seperator(cv2_img):
     alpha = 0.8
     overlay = cv2_img.copy()
-    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/seperator.png', 0.4875, 0.09583333333333334, 0.51015625, 0.9958333333333333)
+    img, tlx, tly, brx, bry = find_box(overlay, current_path + '/UI_images/seperator.png', 0.4875, 0.09583333333333334, 0.51015625, 0.9958333333333333)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
@@ -534,7 +535,7 @@ def followme(cv2_img, shown_on_left):
 
     alpha = 0.8
     overlay = cv2_img.copy()
-    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/followme.png', tlx_pct, tly_pct, brx_pct, bry_pct)
+    img, tlx, tly, brx, bry = find_box(overlay, current_path + '/UI_images/followme.png', tlx_pct, tly_pct, brx_pct, bry_pct)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img
@@ -545,9 +546,9 @@ def who_to_pose(cv2_img, left_to_pose):
     brx_pct = 0.55
     bry_pct = 0.48
     if left_to_pose:
-        int_img = './UI_images/instruction_l_pose.png'
+        int_img = current_path + '/UI_images/instruction_l_pose.png'
     else:
-        int_img = './UI_images/instruction_r_pose.png'
+        int_img = current_path + '/UI_images/instruction_r_pose.png'
     alpha = 0.8
     overlay = cv2_img.copy()
     img, tlx, tly, brx, bry = find_box(overlay, int_img, tlx_pct, tly_pct, brx_pct, bry_pct)
@@ -558,7 +559,7 @@ def who_to_pose(cv2_img, left_to_pose):
 def instruction_battle(cv2_img):
     alpha = 0.8
     overlay = cv2_img.copy()
-    img, tlx, tly, brx, bry = find_box(overlay, './UI_images/instruction_battle.png', 0.2305, 0.2914, 0.7719, 0.70)
+    img, tlx, tly, brx, bry = find_box(overlay, current_path + '/UI_images/instruction_battle.png', 0.2305, 0.2914, 0.7719, 0.70)
     overlay = overlay_transparent(overlay, img, tlx, tly, (brx - tlx, bry - tly))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img

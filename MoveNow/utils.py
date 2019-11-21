@@ -1,6 +1,15 @@
 import numpy as np
 import cv2
 import time
+
+func_ = None
+def init_worker(func):
+    global func_
+    func_ = func
+
+def worker(x):
+    return func_(x)
+
 def bounding_box_coordinates (keypoint_list_x, keypoint_list_y, scale_x = 0.1, scale_y = 0.1):
     max_y = max(keypoint_list_y)
     min_y = min(keypoint_list_y)
@@ -133,11 +142,11 @@ def zoomin_point(posedata, scale_x = 0.1, scale_y = 0.1):
     keypoint_list_y = [round(posedata[keypoint]['y']) for keypoint in keypoints]
     keypoint_list_conf = [posedata[keypoint]['conf'] for keypoint in keypoints]
     max_x_boundary, min_x_boundary, max_y_boundary, min_y_boundary = bounding_box_coordinates (keypoint_list_x, keypoint_list_y, scale_x, scale_y)
-    pt1 = (min_x_boundary, min_y_boundary)
-    pt2 = (max_x_boundary, max_y_boundary)
+    pt1 = [min_x_boundary, min_y_boundary]
+    pt2 = [max_x_boundary, max_y_boundary]
     (x1,y1) = pt1
     
-    new_keypoint_list_x = [x-x1   for x in keypoint_list_x]
+    new_keypoint_list_x = [x-x1 for x in keypoint_list_x]
     new_keypoint_list_y = [y-y1 for y in keypoint_list_y]
     new_posedata = { list(keypoints)[i]:{'x':new_keypoint_list_x[i],
                                         'y':new_keypoint_list_y[i],

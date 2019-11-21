@@ -1,13 +1,13 @@
 import os, sys, time
 cwdir = os.path.dirname(os.path.realpath(__file__))
 from PoseNet.models.mobilenet_v1 import MobileNetV1, MOBILENET_V1_CHECKPOINTS
-from PoseNet.utils import read_cap
+from PoseNet.utils import read_cap, _process_input
 import PoseNet
 import numpy as np
 import torch, cv2
 from pyfiglet import Figlet
 import json
-from utils import build_neck
+from utils import build_neck, init_worker, worker
 pyf = Figlet(font = 'slant')
 
 # import your PoseNet Code here
@@ -54,7 +54,7 @@ def LoadModel(weight_dir = "./model_", model_id = 101, output_stride = 16, pose_
 
     return model
 
-def PredictPose(model, img_path = None, capture = None, ip_webcam = False, scale_factor = 1.0, output_stride = 16, useGPU = False, debug_mode = False):
+def PredictPose(model, img_path = None, input_image = None, capture = None, ip_webcam = False, scale_factor = 1.0, output_stride = 16, useGPU = False, debug_mode = False):
     '''
     Pose Model Predictor wrapper will return pose data
     Args:
@@ -64,7 +64,7 @@ def PredictPose(model, img_path = None, capture = None, ip_webcam = False, scale
         debug_mode: print extra information when predicting
     '''
     image_name = None
-    if type(capture) == type(None):
+    if type(capture) == type(None) and type(input_image) == type(None):
         image_name = os.path.basename(img_path).split(".")[0] #image name for saving
         image_name = '0' * (6 - len(image_name)) + str(image_name) #format e.g. 00001
 
@@ -72,12 +72,14 @@ def PredictPose(model, img_path = None, capture = None, ip_webcam = False, scale
     start = time.time()
     if model.name == "PoseNet":
         # Do the magic here
-        if type(capture) == type(None):
+        if type(capture) == type(None) and type(input_image) == type(None):
             input_image, cv2_img, output_scale = PoseNet.read_imgfile(
                 img_path, scale_factor=scale_factor, output_stride=output_stride)
-        else:
+        elif type(input_image) == type(None):
             input_image, cv2_img, output_scale = read_cap(capture, ip_webcam = ip_webcam, scale_factor=scale_factor, output_stride=output_stride)
-       
+        elif type(input_image) != type(None):
+            input_image, cv2_img, output_scale = _process_input(input_image, scale_factor=scale_factor, output_stride=output_stride)
+            
         with torch.no_grad():
             if useGPU and torch.cuda.is_available():
                 input_image = torch.Tensor(input_image).cuda()
@@ -105,7 +107,9 @@ def PredictPose(model, img_path = None, capture = None, ip_webcam = False, scale
             for i in range(len(pose_data_set_list)):
                 if sum(keypoint_scores[i])==0:
                     break
+                # with Pool(n_cpu, initializer = init_worker, initargs = (lambda pose_set:{'x':pose_set[0][1],'y':pose_set[0][0],'conf':pose_set[1]},)) as P:
                 pose_value_list=list(map(lambda pose_set:{'x':pose_set[0][1],'y':pose_set[0][0],'conf':pose_set[1]},pose_data_set_list[i]))
+                    # pose_value_list = list(P.map(worker, pose_data_set_list[i]))
                 pose_data['poses'].append(dict(zip(pose_key_list,pose_value_list)))
 
             #output an annotated image
@@ -152,7 +156,7 @@ if __name__ == '__main__':
     for img_path in ls_img:
         print('\n', img_path,'\n')
         pose_data, image_name, cv2_img = PredictPose(model,img_path)
-        save_to_json(pose_data, image_name, output_json_path= './players/')
+        save_to_json(pose_data, image_name, output_json_path= './players/target_posedata/json')
 ################################################################################
 #     ____                  _   __     __
 #    / __ \____  ________  / | / /__  / /_

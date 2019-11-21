@@ -22,15 +22,15 @@ Besides, use GPU with scale factor, which is set to 1, would have better experie
 ## Reminders
 - Download ***pytorch with gpu version*** if your computer has GPU.
 
-- If you are using CPU and the fps is low, please adjust the scale factor to ***below 0.5*** but it will affect the accuracy of Human Pose Estimation.
+- If you are using ***CPU*** and the ***fps*** is low, please adjust the ***scale factor*** to ***below 0.5*** but it will affect the accuracy of Human Pose Estimation.
 
 - Press ***Q*** to quit the program
 
 ## Upload Your Own Poses / Background Music
 ### Your Own Poses (can only handle some easy poses)
 - Save images of poses to ***MoveNow/players***, default: ***JPG***
-- Run pose_models.py on the terminal
-- Check if the output (json file) is saved to ***MoveNow/players/target_posedata/json***
+- Run ***pose_models.py*** on the terminal
+- Check if the output (***json file***) is saved to ***MoveNow/players/target_posedata/json***
 
 ### Background Music
 - Add your favourite background music to ***MoveNow/background_music***, default: ***MP3***

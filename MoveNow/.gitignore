@@ -1,6 +1,6 @@
 .DS_Store
-model_/*
-/result_images
+# model_/*
+# /result_images
 players/image/
 players/test/
 players/yoga/

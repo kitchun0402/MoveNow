@@ -71,6 +71,6 @@ Besides, use GPU with scale factor, which is set to 1, would have better experie
 - Repeat the poses in ***Normal Mode***
 
 ***13. --cam-loc***, type = int, default = 0, choices = [0, 1]
-- ***O*** is an ***internal*** cameras whereas ***1*** is an ***external*** camera
+- ***0*** is an ***internal*** cameras whereas ***1*** is an ***external*** camera
 
 

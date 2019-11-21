@@ -21,6 +21,9 @@ target_poses = [pose.path for pose in os.scandir(current_path + '/players/target
 
 def Normal_Mode(args, posenet, output_video = None):
     global target_poses
+    if args['n_poses'] > len(target_poses) and not args['repeated_poses']:
+       args['n_poses'] = len(target_poses) - 1
+    print(args['n_poses'])
     mixer.init()
     playlist = [music.path for music in os.scandir(current_path + '/background_music') if music.path.endswith('.mp3')]
     background_music = random.choice(playlist)
@@ -33,7 +36,7 @@ def Normal_Mode(args, posenet, output_video = None):
         url = args['ip_address'].rstrip('/') + '/shot.jpg'
         assert url.startswith("http://"), "IP address should start with http://"
     else:
-        capture = cv2.VideoCapture(0)
+        capture = cv2.VideoCapture(args['cam_loc'])
     
     prev_posedata = None 
     initial_pose = True
@@ -130,7 +133,7 @@ def Normal_Mode(args, posenet, output_video = None):
 
     """result"""
     time.sleep(1)
-    capture_ = cv2.VideoCapture(0)
+    capture_ = cv2.VideoCapture(args['cam_loc'])
     start = 0
     result_count = 1
     result_img_ = None

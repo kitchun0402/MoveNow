@@ -21,6 +21,7 @@ from datetime import datetime
 
 ap =  ArgumentParser()
 ap.add_argument('-name', dest = 'pose_id', type = str, default = '0', help = "Your Name to display")
+ap.add_argument('--cam-loc', type = int, default = 0, choices = [0, 1], help = "O is an internal cameras and 1 is an external camera")
 ap.add_argument('--ip-webcam', action = 'store_true', default = False, help = "Use IP Webcam application")
 ap.add_argument('-ip','--ip-address', type = str, default = None, help = "Input your IP shown on IP Webcam application")
 ap.add_argument('--weight-dir', type = str, default = "./model_", help = "Path to the model weight")

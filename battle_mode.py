@@ -28,7 +28,7 @@ def Battle_Mode(args, posenet, output_video = None):
         url = args['ip_address'].rstrip('/') + '/shot.jpg'
         assert url.startswith("http://"), "IP address should start with http://"
     else:
-        capture = cv2.VideoCapture(0)
+        capture = cv2.VideoCapture(args['cam_loc'])
     
     overall_time = 0
     evaluation = False

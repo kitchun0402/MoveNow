@@ -23,7 +23,7 @@ def Start_Game(args, posenet, output_video = None):
         url = args['ip_address'].rstrip('/') + '/shot.jpg'
         assert url.startswith("http://"), "IP address should start with http://"
     else:
-        capture = cv2.VideoCapture(0)
+        capture = cv2.VideoCapture(args['cam_loc'])
         if args['output_video']:
             output_video = screen_record(capture, output_file_path =  current_path + '/' + args['output_name'], fps = args['output_fps'])
     

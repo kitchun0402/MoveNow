@@ -70,33 +70,11 @@ def gamebox(img, target_poses, prev_posedata = None,  gen_pose = False, gen_pose
             normalized = False, pose_id = '?', scale_x = 0.3, scale_y = 0.3)
     if battle_mode and flip:
         pose_img = cv2.flip(pose_img, 1)
-    # pose_img = cv2.resize(pose_img, (brx-tlx, bry - tly))
     
     overlay[tly: bry, tlx:brx] = pose_img #overwrite the origin
-    # cv2.putText(overlay, "1", (tlx + round((brx - tlx)/2), tly + round((bry - tly)/2)), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,0), 2)
     new_img = cv2.addWeighted(overlay, 0.7, img, 0.2, 0)
     return new_img, posedata, target_poses
 def pose_generator(target_poses, repeated_poses = True):
-    # posedata = {"poses": {"nose": {"x": 535.098172745078, "y": 80.71212525175943, "conf": 1}, 
-    # "l_eye": {"x": 546.455151619249, "y": 68.4322736531124, "conf": 1}, 
-    # "r_eye": {"x": 521.9774041793553, "y": 68.32097089241017, "conf": 1}, 
-    # "l_ear": {"x": 562.568912203914, "y": 80.64704511433467, "conf": 1}, 
-    # "r_ear": {"x": 505.70463708484715, "y": 81.78348771411403, "conf": 1}, 
-    # "l_shoulder": {"x": 588.779500372923, "y": 154.59615995748365, "conf": 1}, 
-    # "r_shoulder": {"x": 485.74738074993263, "y": 157.68543523822842, "conf": 1}, 
-    # "l_elbow": {"x": 614.0321815824908, "y": 234.88536014636247, "conf": 1}, 
-    # "r_elbow": {"x": 469.8867598228774, "y": 241.42418198711167, "conf": 1}, 
-    # "l_wrist": {"x": 618.9187685707852, "y": 320.6335292609819, "conf": 1}, 
-    # "r_wrist": {"x": 460.9071562341297, "y": 319.50833440984337, "conf": 1}, 
-    # "l_hip": {"x": 574.7652525781807, "y": 315.6835846497513, "conf": 1}, 
-    # "r_hip": {"x": 508.9622923112426, "y": 317.7696791766586, "conf": 1}, 
-    # "l_knee": {"x": 572.3168389994967, "y": 466.9179815326749, "conf": 1}, 
-    # "r_knee": {"x": 509.98556769905196, "y": 469.52238699268867, "conf": 1}, 
-    # "l_ankle": {"x": 576.4955891789616, "y": 590.6729397132228, "conf": 1},
-    # "r_ankle": {"x": 512.8174241591255, "y": 594.3890109174625, "conf": 1}, 
-    # "neck": {"x": 537, "y": 156, "conf": 0.8841903507709503}}, "compute_time": "2.305", 
-    # "metadata": {"width": 1080, "height": 720, "pose_model_name": "PoseNet", "compute_time": "2.305"}}
-    # random.shuffle(target_poses)
     pose_path = random.choice(target_poses)
     if not repeated_poses:
         target_poses.remove(pose_path)
@@ -124,22 +102,18 @@ def criteria (mae, cv2_img, battle_mode_left_player = False, battle_mode_right_p
     
     if mae == -1:
         text = "Missing"
-        # cv2.putText(cv2_img, "Missing", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (96, 96, 96), 4, cv2.LINE_AA)
         img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/missing.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.009:
         text = "Perfect" #1000 score (2 combos, 500, 1000, 1500...)
-        # cv2.putText(cv2_img, "Perfect", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 102, 255), 4, cv2.LINE_AA)
         img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/perfect.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     elif mae < 0.020:
         text = "Good" #500 score (2 combos, 250, 500, 750...)
-        # cv2.putText(cv2_img, "Good", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (102, 178, 255), 4, cv2.LINE_AA)
         img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/good.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     else:
         text = "Poor" #0 score
-        # cv2.putText(cv2_img, "Poor", (int(cv2_img.shape[1] * 0.6), int(cv2_img.shape[0] * 0.2)), cv2.FONT_HERSHEY_PLAIN, 4, (0, 128, 255), 4, cv2.LINE_AA)
         img, tlx, tly, brx, bry = find_box(cv2_img, './UI_images/poor.png', tlx_pct, tly_pct, brx_pct, bry_pct)
         cv2_img = overlay_transparent(cv2_img, img, tlx, tly, (brx - tlx, bry - tly))
     return text, cv2_img
@@ -202,3 +176,49 @@ def player_indicator(cv2_img, posedata, player_num):
     overlay = overlay_transparent(overlay, img, tlx, int(tly), (brx - tlx, int(bry) - int(tly)))
     cv2_img = cv2.addWeighted(overlay, alpha, cv2_img, 1 - alpha, -1)
     return cv2_img 
+def back_to_original_size(posedata, tlxy):
+    keypoints = posedata['poses'][0].keys()
+    for keypoint in keypoints:
+        posedata['poses'][0][keypoint]['x'] += tlxy[0]
+        posedata['poses'][0][keypoint]['y'] += tlxy[1]
+    return posedata
+    
+def yolo_detection(cv2_img, tfnet):
+    """yolo"""
+    max_area = None
+    max_tlxy = None
+    max_brxy = None
+    cropped_img = None
+    results = tfnet.return_predict(cv2_img)
+    print('origin', cv2_img.shape)
+    for result in results:
+        tl = [result['topleft']['x'] * 0.75, result['topleft']['y'] * 0.75]
+        br = [result['bottomright']['x'] * 1.25, result['bottomright']['y'] * 1.25]
+        label = result['label']
+        area = (br[0] - tl[0]) * (br[1] - tl[1])
+        if label != 'person':
+            continue
+        if max_area == None:
+            max_area = area
+            max_tlxy = tl
+            max_brxy = br
+        elif max_area < area:
+            max_area = area
+            max_tlxy = tl
+            max_brxy = br
+    
+    if max_tlxy != None and max_brxy != None:
+        if max_brxy[0] > cv2_img.shape[1]:
+            max_brxy[0] = cv2_img.shape[1]
+        if max_tlxy[0] < 0:
+            max_tlxy[0] = 0
+        if max_brxy[1] > cv2_img.shape[0]:
+            max_brxy[1] = cv2_img.shape[0]
+        if max_tlxy[1] < 0:
+            max_tlxy[1] = 0  
+        cropped_img = cv2_img[int(max_tlxy[1]): int(max_brxy[1]), int(max_tlxy[0]): int(max_brxy[0])]
+        print('max_tlxy', max_tlxy)
+        print('max_brxy', max_brxy)
+        print('cropped_img', cropped_img.shape)
+    return max_tlxy, max_brxy, cropped_img, cv2_img
+    

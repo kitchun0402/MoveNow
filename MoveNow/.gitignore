@@ -1,5 +1,5 @@
 .DS_Store
-model_/*
+# model_/*
 /result_images
 players/image/
 players/test/
